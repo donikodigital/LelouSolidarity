@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberStatus {
+  PENDING   // formulaire recu, en attente de traitement par l'administrateur
+  VALIDATED // carte generee par l'administrateur
+}
+
+enum CardStatus {
+  NONE           // pas encore de carte generee
+  ACTIVE         // carte valide
+  EXPIRING_SOON  // rappel J-30 envoye
+  EXPIRED        // carte arrivee a expiration
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AccessCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  email     String
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  member    Member?
+
+  @@index([email])
+}
+
+model Member {
+  id             String   @id @default(cuid())
+
+  accessCodeId   String      @unique
+  accessCode     AccessCode  @relation(fields: [accessCodeId], references: [id])
+
+  // Informations personnelles
+  firstName      String
+  lastName       String
+  birthDate      DateTime
+
+  // Origine
+  originDistrict String   // Ville / district d'origine a Lelouma
+
+  // Residence aux USA
+  addressLine    String
+  city           String
+  state          String
+  zipCode        String
+
+  // Contact
+  phone          String
+  email          String
+
+  // Photo (Cloudinary)
+  photoUrl       String
+  photoPublicId  String?
+
+  // Statut de traitement
+  status         MemberStatus @default(PENDING)
+
+  // Carte de membre
+  memberCode     String?     @unique   // ex: LS-2026-0001, attribue a la generation de la carte
+  cardStatus     CardStatus  @default(NONE)
+  cardIssuedAt   DateTime?
+  cardExpiresAt  DateTime?
+  cardPdfUrl     String?
+  verifyToken    String?     @unique
+
+  // Suivi des rappels automatiques
+  reminderSentAt      DateTime?
+  expiredNotifiedAt   DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([cardStatus])
+}
