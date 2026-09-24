@@ -1,3 +1,4 @@
+//frontend/app/admin/(dashboard)/page.tsx
 'use client';
 
 import { useMemo } from 'react';
@@ -46,7 +47,7 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard icon={Clock3} label="Demandes en attente" value={counts.pending} tone="amber" />
             <StatCard icon={CheckCircle2} label="Cartes actives" value={counts.active} tone="emerald" />
             <StatCard icon={AlertTriangle} label="A renouveler" value={counts.expiringSoon} tone="amber" />
