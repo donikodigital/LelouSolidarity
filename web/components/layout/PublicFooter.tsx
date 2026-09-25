@@ -1,4 +1,6 @@
+//frontend/components/layout/PublicFooter.tsx
 import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 import { ASSOCIATION_NAME } from '@/lib/constants';
 
 export function PublicFooter() {
@@ -8,7 +10,11 @@ export function PublicFooter() {
         <p>
           &copy; {new Date().getFullYear()} {ASSOCIATION_NAME}
         </p>
-        <Link href="/admin/login" className="text-ocean-400 transition-colors hover:text-ocean-600">
+        <Link
+          href="/admin/login"
+          className="inline-flex items-center gap-1.5 rounded-full border border-ocean-200 px-4 py-1.5 text-sm font-semibold text-ocean-600 transition-colors hover:border-ocean-300 hover:bg-ocean-50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
           Espace administrateur
         </Link>
       </div>
