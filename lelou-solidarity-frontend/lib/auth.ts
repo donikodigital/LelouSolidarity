@@ -1,3 +1,4 @@
+//lelou-solidarity-frontend/lib/auth.ts
 'use client';
 
 import { AdminSession } from './types';

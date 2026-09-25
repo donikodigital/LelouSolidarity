@@ -1,3 +1,4 @@
+//lelou-solidarity-frontend/lib/types.ts
 export type MemberStatus = 'PENDING' | 'VALIDATED';
 export type CardStatus = 'NONE' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
 

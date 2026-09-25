@@ -1,3 +1,4 @@
+//lelou-solidarity-backend/src/mail/mail.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
@@ -6,6 +7,7 @@ import {
   cardExpiredEmail,
   cardReadyEmail,
   expirationReminderEmail,
+  resetPasswordEmail,
   submissionReceivedEmail,
 } from './templates';
 
@@ -26,6 +28,14 @@ export class MailService {
     const formUrl = `${this.frontendUrl}/formulaire`;
     return this.send(email, 'Votre code d\u2019acces LELOU SOLIDARITY', accessCodeEmail(code, formUrl));
   }
+  async sendPasswordReset(email: string, name: string, token: string) {
+  const resetUrl = `${this.frontendUrl}/admin/reset-password/${token}`;
+  return this.send(
+    email,
+    'Reinitialisation de mot de passe - LELOU SOLIDARITY',
+    resetPasswordEmail(name, resetUrl),
+  );
+}
 
   async sendSubmissionReceived(email: string, firstName: string) {
     return this.send(email, 'Demande recue - LELOU SOLIDARITY', submissionReceivedEmail(firstName));

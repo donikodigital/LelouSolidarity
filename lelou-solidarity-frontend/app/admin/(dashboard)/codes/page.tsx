@@ -1,3 +1,4 @@
+//lelou-solidarity-frontend/app/admin/(dashboard)/codes/page.tsx
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';

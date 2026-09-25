@@ -1,3 +1,4 @@
+//lelou-solidarity-backend/src/mail/templates.ts
 // Gabarits d'e-mails en HTML simple (compatible avec la plupart des clients
 // mail). Les couleurs viennent de src/common/theme.ts - un seul endroit a
 // modifier pour tout repercuter (carte + e-mails).
@@ -86,6 +87,21 @@ export function cardExpiredEmail(firstName: string) {
       <p>Bonjour ${firstName},</p>
       <p>Votre carte de membre est arrivee a expiration aujourd'hui.</p>
       <p>Merci de vous rapprocher du tresorier de l'association pour regulariser votre cotisation ; votre carte sera alors renouvelee.</p>
+    `,
+  );
+}
+export function resetPasswordEmail(name: string, resetUrl: string) {
+  return layout(
+    'Reinitialisation de votre mot de passe',
+    `
+      <p>Bonjour ${name},</p>
+      <p>Vous avez demande la reinitialisation de votre mot de passe administrateur pour <strong>${THEME.associationName}</strong>.</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${resetUrl}" style="background:${THEME.primary};color:#FFFFFF;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">
+          Reinitialiser mon mot de passe
+        </a>
+      </p>
+      <p style="color:#8AA0AE;font-size:13px;">Ce lien expire dans 1 heure. Si vous n'etes pas a l'origine de cette demande, ignorez cet e-mail.</p>
     `,
   );
 }

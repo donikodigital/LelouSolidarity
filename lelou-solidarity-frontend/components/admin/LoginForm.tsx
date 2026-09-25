@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, LogIn } from 'lucide-react';
@@ -10,6 +11,7 @@ import { BrandMark } from '@/components/layout/BrandMark';
 import { apiPublic, ApiError } from '@/lib/api';
 import { saveSession } from '@/lib/auth';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+
 
 export function LoginForm() {
   const router = useRouter();
@@ -70,6 +72,21 @@ export function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+                <Input
+          label="Mot de passe"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <div className="flex justify-end -mt-2">
+          <Link href="/admin/forgot-password" className="text-xs font-medium text-ocean-500 hover:text-ocean-700">
+            Mot de passe oublié ?
+          </Link>
+        </div>
+        <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
         <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
           <LogIn className="h-4 w-4" />
           Se connecter

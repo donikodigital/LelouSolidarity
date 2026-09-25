@@ -1,3 +1,4 @@
+//lelou-solidarity-frontend/app/verify/[token]/page.tsx
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
 import { BrandMark } from '@/components/layout/BrandMark';
 import { Card } from '@/components/ui/Card';
