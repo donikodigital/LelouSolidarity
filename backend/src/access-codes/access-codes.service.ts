@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+//backend/src/access-codes/access-codes.service.ts
+// v1.2 — si l'envoi Resend echoue : suppression du code fantome
+// fraichement cree + remontee du message d'erreur reel de Resend a
+// l'administrateur (au lieu d'un 500 generique qui masquait la cause).
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { generateAccessCode } from './utils/code-generator';
@@ -29,10 +33,20 @@ export class AccessCodesService {
     }
 
     if (!accessCode) {
-      throw new Error("Impossible de generer un code d'acces unique, reessaie.");
+      throw new BadRequestException("Impossible de generer un code d'acces unique, reessaie.");
     }
 
-    await this.mail.sendAccessCode(accessCode.email, accessCode.code);
+    try {
+      await this.mail.sendAccessCode(accessCode.email, accessCode.code);
+    } catch (err) {
+      // L'envoi a echoue : on supprime le code fantome (jamais recu par
+      // personne) au lieu de le laisser trainer en base comme "En attente",
+      // et on remonte le vrai message Resend a l'admin pour diagnostic direct.
+      await this.prisma.accessCode.delete({ where: { id: accessCode.id } }).catch(() => undefined);
+      throw new BadRequestException(
+        `Le code n'a pas pu etre envoye par e-mail : ${(err as Error).message}`,
+      );
+    }
 
     return { id: accessCode.id, email: accessCode.email, code: accessCode.code };
   }
@@ -42,5 +56,35 @@ export class AccessCodesService {
       orderBy: { createdAt: 'desc' },
       include: { member: { select: { id: true, firstName: true, lastName: true } } },
     });
+  }
+
+  /** Modifie l'adresse e-mail d'un code pas encore utilise. */
+  async update(id: string, email?: string) {
+    const accessCode = await this.prisma.accessCode.findUnique({ where: { id } });
+    if (!accessCode) {
+      throw new NotFoundException("Code d'acces introuvable.");
+    }
+    if (accessCode.used) {
+      throw new BadRequestException("Impossible de modifier un code deja utilise par un membre.");
+    }
+
+    return this.prisma.accessCode.update({
+      where: { id },
+      data: email ? { email: email.toLowerCase().trim() } : {},
+    });
+  }
+
+  /** Supprime un code pas encore utilise. */
+  async remove(id: string) {
+    const accessCode = await this.prisma.accessCode.findUnique({ where: { id } });
+    if (!accessCode) {
+      throw new NotFoundException("Code d'acces introuvable.");
+    }
+    if (accessCode.used) {
+      throw new BadRequestException("Impossible de supprimer un code deja utilise par un membre.");
+    }
+
+    await this.prisma.accessCode.delete({ where: { id } });
+    return { id };
   }
 }

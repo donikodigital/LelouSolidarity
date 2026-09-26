@@ -1,4 +1,5 @@
-//lelou-solidarity-frontend/app/admin/(dashboard)/codes/page.tsx
+//web/app/admin/(dashboard)/codes/page.tsx
+// v1.2 — ouverture de la modale au clic sur une carte
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { AccessCodeCard } from '@/components/admin/AccessCodeCard';
+import { AccessCodeModal } from '@/components/admin/AccessCodeModal';
 import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { AccessCodeRecord } from '@/lib/types';
@@ -23,6 +25,8 @@ export default function CodesPage() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+
+  const [selected, setSelected] = useState<AccessCodeRecord | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,11 +138,18 @@ export default function CodesPage() {
         {!loading && codes && codes.length > 0 && (
           <div className="grid gap-3 sm:grid-cols-2">
             {codes.map((record) => (
-              <AccessCodeCard key={record.id} record={record} />
+              <AccessCodeCard key={record.id} record={record} onClick={() => setSelected(record)} />
             ))}
           </div>
         )}
       </div>
+
+      <AccessCodeModal
+        record={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onChanged={load}
+      />
     </div>
   );
 }

@@ -1,13 +1,39 @@
 //web/components/admin/AccessCodeCard.tsx
+// v1.1 — carte cliquable (ouvre la modale de detail/actions)
 import Link from 'next/link';
+import { KeyboardEvent } from 'react';
 import { CheckCircle2, Clock3 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { formatDate } from '@/lib/format';
 import { AccessCodeRecord } from '@/lib/types';
 
-export function AccessCodeCard({ record }: { record: AccessCodeRecord }) {
+interface AccessCodeCardProps {
+  record: AccessCodeRecord;
+  onClick?: () => void;
+}
+
+export function AccessCodeCard({ record, onClick }: AccessCodeCardProps) {
   return (
-    <Card className="flex items-center gap-4 p-4">
+    <Card
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e: KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`flex items-center gap-4 p-4 ${
+        onClick
+          ? 'cursor-pointer transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ocean-300'
+          : ''
+      }`}
+    >
       <div
         className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
           record.used ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
@@ -28,7 +54,11 @@ export function AccessCodeCard({ record }: { record: AccessCodeRecord }) {
             <>
               {' '}
               &middot; utilise par{' '}
-              <Link href={`/admin/membres/${record.member.id}`} className="font-medium text-ocean-600 hover:underline">
+              <Link
+                href={`/admin/membres/${record.member.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="font-medium text-ocean-600 hover:underline"
+              >
                 {record.member.firstName} {record.member.lastName}
               </Link>
             </>
