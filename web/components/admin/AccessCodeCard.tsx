@@ -1,3 +1,4 @@
+//web/components/admin/AccessCodeCard.tsx
 import Link from 'next/link';
 import { CheckCircle2, Clock3 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';

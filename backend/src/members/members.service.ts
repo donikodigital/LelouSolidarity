@@ -1,6 +1,11 @@
+//backend/src/members/members.service.ts
+// v1.1 — l'échec d'envoi de l'e-mail de confirmation ne doit plus faire
+// planter la requête : le membre est déjà créé et le code déjà consommé
+// à ce stade, donc on logue l'erreur sans la relancer.
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,6 +19,8 @@ const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/jpg', 'image/png'];
 
 @Injectable()
 export class MembersService {
+  private readonly logger = new Logger(MembersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploads: UploadsService,
@@ -71,7 +78,15 @@ export class MembersService {
       return created;
     });
 
-    await this.mail.sendSubmissionReceived(member.email, member.firstName);
+    // A ce stade, le membre est deja enregistre et le code deja consomme :
+    // un echec d'envoi d'e-mail ne doit plus etre fatal pour la requete.
+    try {
+      await this.mail.sendSubmissionReceived(member.email, member.firstName);
+    } catch (err) {
+      this.logger.error(
+        `Echec de l'e-mail de confirmation pour ${member.email}: ${(err as Error).message}`,
+      );
+    }
 
     return { id: member.id, status: member.status };
   }
