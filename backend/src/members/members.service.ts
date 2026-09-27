@@ -1,7 +1,7 @@
 //backend/src/members/members.service.ts
-// v1.1 — l'échec d'envoi de l'e-mail de confirmation ne doit plus faire
-// planter la requête : le membre est déjà créé et le code déjà consommé
-// à ce stade, donc on logue l'erreur sans la relancer.
+// v1.2 — l'upload Cloudinary est desormais protege lui aussi : en cas
+// d'echec, on logue l'erreur reelle (visible dans les logs Render) et on
+// renvoie un message clair a l'utilisateur au lieu d'un 500 generique.
 import {
   BadRequestException,
   Injectable,
@@ -49,7 +49,17 @@ export class MembersService {
       throw new BadRequestException("Ce code d'acces a deja ete utilise.");
     }
 
-    const upload = await this.uploads.uploadMemberPhoto(photo.buffer, dto.email);
+    let upload: { secure_url: string; public_id: string };
+    try {
+      upload = await this.uploads.uploadMemberPhoto(photo.buffer, dto.email);
+    } catch (err) {
+      this.logger.error(
+        `Echec de l'upload Cloudinary pour ${dto.email}: ${(err as Error).message}`,
+      );
+      throw new BadRequestException(
+        "La photo n'a pas pu etre enregistree, merci de reessayer avec une autre photo (JPG ou PNG).",
+      );
+    }
 
     const member = await this.prisma.$transaction(async (tx) => {
       const created = await tx.member.create({
