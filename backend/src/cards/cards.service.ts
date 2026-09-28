@@ -1,8 +1,5 @@
 //backend/src/cards/cards.service.ts
-// v1.1 — chaque etape externe (rendu PDF, upload Cloudinary, envoi e-mail)
-// est desormais isolee : une erreur precise et exploitable au lieu d'un
-// 500 generique, et l'e-mail de confirmation n'est plus bloquant une fois
-// la carte deja generee et enregistree.
+// v1.2 — page PDF elargie pour accueillir recto + verso empiles, avec marge
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as QRCode from 'qrcode';
@@ -11,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { MailService } from '../mail/mail.service';
 import { launchBrowser } from './browser.util';
-import { CARD_HEIGHT_MM, CARD_WIDTH_MM } from './theme';
+import { PAGE_HEIGHT_MM, PAGE_WIDTH_MM } from './theme';
 import { renderMemberCardHtml } from './card-template';
 
 const CARD_VALIDITY_YEARS = 1;
@@ -34,11 +31,6 @@ export class CardsService {
     }
 
     const isFirstGeneration = !member.memberCode;
-    // Une carte EXPIRING_SOON/EXPIRED qu'on regenere = un renouvellement
-    // (le membre vient de regulariser sa cotisation) : on repart sur une
-    // nouvelle periode de validite d'un an. Une carte deja ACTIVE qu'on
-    // regenere = une simple reimpression (ex. correction d'une info) :
-    // les dates existantes sont conservees.
     const isRenewal = member.cardStatus === 'EXPIRING_SOON' || member.cardStatus === 'EXPIRED';
     const shouldResetValidity = isFirstGeneration || isRenewal;
 
@@ -103,8 +95,6 @@ export class CardsService {
       },
     });
 
-    // La carte est deja generee et enregistree a ce stade : un echec
-    // d'envoi d'e-mail ne doit plus faire echouer la requete.
     try {
       await this.mail.sendCardReady(
         updated.email,
@@ -131,8 +121,8 @@ export class CardsService {
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' });
       const pdf = await page.pdf({
-        width: `${CARD_WIDTH_MM}mm`,
-        height: `${CARD_HEIGHT_MM}mm`,
+        width: `${PAGE_WIDTH_MM}mm`,
+        height: `${PAGE_HEIGHT_MM}mm`,
         printBackground: true,
         margin: { top: 0, bottom: 0, left: 0, right: 0 },
       });
@@ -142,7 +132,6 @@ export class CardsService {
     }
   }
 
-  /** Identifiant sequentiel du type LS-2026-0001, unique par annee. */
   private async nextMemberCode(): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `LS-${year}-`;
@@ -158,7 +147,6 @@ export class CardsService {
       if (!exists) return candidate;
     }
 
-    // Filet de securite tres improbable : suffixe aleatoire court.
     return `${prefix}${Date.now().toString().slice(-4)}`;
   }
 }

@@ -1,4 +1,13 @@
-import { CARD_HEIGHT_MM, CARD_THEME, CARD_WIDTH_MM } from './theme';
+//backend/src/cards/card-template.ts
+import {
+  CARD_GAP_MM,
+  CARD_HEIGHT_MM,
+  CARD_THEME,
+  CARD_WIDTH_MM,
+  PAGE_HEIGHT_MM,
+  PAGE_MARGIN_MM,
+  PAGE_WIDTH_MM,
+} from './theme';
 
 export interface CardData {
   firstName: string;
@@ -33,9 +42,12 @@ function statusLabel(status: CardData['status']): string {
 }
 
 /**
- * Genere le document HTML complet d'une carte de membre, aux dimensions
- * exactes d'une carte bancaire (CR80). Concu pour etre rendu par Puppeteer
- * et exporte directement en PDF via page.pdf({ width, height }).
+ * Genere le document HTML complet de la carte de membre : recto et verso,
+ * empiles verticalement et alignes sur une seule page PDF (le verso
+ * directement sous le recto), avec une marge de page pour eviter que le
+ * rendu ne soit colle aux bords dans les lecteurs PDF. Concu pour etre
+ * rendu par Puppeteer et exporte via page.pdf({ width: PAGE_WIDTH_MM,
+ * height: PAGE_HEIGHT_MM }).
  */
 export function renderMemberCardHtml(data: CardData): string {
   const t = CARD_THEME;
@@ -47,15 +59,29 @@ export function renderMemberCardHtml(data: CardData): string {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: ${CARD_WIDTH_MM}mm;
-    height: ${CARD_HEIGHT_MM}mm;
+    width: ${PAGE_WIDTH_MM}mm;
+    height: ${PAGE_HEIGHT_MM}mm;
   }
   body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #eef2f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: ${PAGE_MARGIN_MM}mm 0;
+  }
+
+  .card {
     position: relative;
+    width: ${CARD_WIDTH_MM}mm;
+    height: ${CARD_HEIGHT_MM}mm;
     overflow: hidden;
     border-radius: 3mm;
     background: linear-gradient(135deg, ${t.primary} 0%, ${t.primaryDark} 100%);
+    box-shadow: 0 1mm 3mm rgba(0,0,0,0.18);
+  }
+  .card + .card {
+    margin-top: ${CARD_GAP_MM}mm;
   }
 
   .status-pill {
@@ -165,13 +191,13 @@ export function renderMemberCardHtml(data: CardData): string {
     justify-content: space-between;
     padding: 0 4mm;
   }
-  .footer .id-block .k {
+  .footer .id-block .k, .footer .exp-block .k {
     color: rgba(255,255,255,0.6);
     font-size: 5px;
     letter-spacing: 0.4px;
     text-transform: uppercase;
   }
-  .footer .id-block .v {
+  .footer .id-block .v, .footer .exp-block .v {
     color: #fff;
     font-size: 8px;
     font-weight: 800;
@@ -180,17 +206,6 @@ export function renderMemberCardHtml(data: CardData): string {
   .footer .exp-block {
     text-align: right;
     margin-right: 15mm;
-  }
-  .footer .exp-block .k {
-    color: rgba(255,255,255,0.6);
-    font-size: 5px;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-  }
-  .footer .exp-block .v {
-    color: #fff;
-    font-size: 8px;
-    font-weight: 800;
   }
 
   .qr-wrap {
@@ -207,41 +222,118 @@ export function renderMemberCardHtml(data: CardData): string {
   .qr-wrap img {
     width: 100%; height: 100%;
   }
+
+  /* --- Verso --- */
+  .card.verso {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 6mm;
+  }
+  .verso .brand {
+    position: static;
+    margin-bottom: 5mm;
+  }
+  .verso .qr-big-wrap {
+    background: #fff;
+    border-radius: 2mm;
+    padding: 2mm;
+    width: 26mm;
+    height: 26mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .verso .qr-big-wrap img {
+    width: 100%; height: 100%;
+  }
+  .verso .verify-text {
+    margin-top: 2.6mm;
+    color: rgba(255,255,255,0.85);
+    font-size: 5.6px;
+    letter-spacing: 0.2px;
+    text-align: center;
+    max-width: 60mm;
+    line-height: 1.4;
+  }
+  .verso .verso-footer {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 10mm;
+    background: ${t.primaryDark};
+    border-radius: 0 0 3mm 3mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .verso .verso-footer .v {
+    color: #fff;
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+  }
 </style>
 </head>
 <body>
-  <div class="brand">
-    <div class="brand-badge">LS</div>
-    <div>
-      <div class="brand-name">${t.associationName}</div>
-      <div class="brand-sub">Carte de membre</div>
+
+  <!-- RECTO -->
+  <div class="card">
+    <div class="brand">
+      <div class="brand-badge">LS</div>
+      <div>
+        <div class="brand-name">${t.associationName}</div>
+        <div class="brand-sub">Carte de membre</div>
+      </div>
+    </div>
+
+    <div class="status-pill"><span class="status-dot"></span>${statusLabel(data.status)}</div>
+
+    <img class="photo" src="${data.photoUrl}" />
+
+    <div class="info">
+      <div class="label">Membre adherent</div>
+      <div class="name">${data.firstName} ${data.lastName.toUpperCase()}</div>
+      <div class="row"><div class="k">Ne(e) en</div><div class="v">${data.birthYear}</div></div>
+      <div class="row"><div class="k">Origine</div><div class="v">${data.originDistrict}</div></div>
+      <div class="row"><div class="k">Residence</div><div class="v">${data.city}, ${data.state}</div></div>
+    </div>
+
+    <div class="footer">
+      <div class="id-block">
+        <div class="k">N&deg; identifiant</div>
+        <div class="v">${data.memberCode}</div>
+      </div>
+      <div class="exp-block">
+        <div class="k">Expire fin</div>
+        <div class="v">${formatMonthYear(data.expiresAt)}</div>
+      </div>
+    </div>
+
+    <div class="qr-wrap"><img src="${data.qrDataUrl}" /></div>
+  </div>
+
+  <!-- VERSO -->
+  <div class="card verso">
+    <div class="brand">
+      <div class="brand-badge">LS</div>
+      <div>
+        <div class="brand-name">${t.associationName}</div>
+        <div class="brand-sub">Verification de la carte</div>
+      </div>
+    </div>
+
+    <div class="qr-big-wrap"><img src="${data.qrDataUrl}" /></div>
+
+    <div class="verify-text">
+      Scannez ce code pour verifier l'authenticite de cette carte de membre.
+    </div>
+
+    <div class="verso-footer">
+      <div class="v">${data.memberCode} &middot; Expire fin ${formatMonthYear(data.expiresAt)}</div>
     </div>
   </div>
 
-  <div class="status-pill"><span class="status-dot"></span>${statusLabel(data.status)}</div>
-
-  <img class="photo" src="${data.photoUrl}" />
-
-  <div class="info">
-    <div class="label">Membre adherent</div>
-    <div class="name">${data.firstName} ${data.lastName.toUpperCase()}</div>
-    <div class="row"><div class="k">Ne(e) en</div><div class="v">${data.birthYear}</div></div>
-    <div class="row"><div class="k">Origine</div><div class="v">${data.originDistrict}</div></div>
-    <div class="row"><div class="k">Residence</div><div class="v">${data.city}, ${data.state}</div></div>
-  </div>
-
-  <div class="footer">
-    <div class="id-block">
-      <div class="k">N&deg; identifiant</div>
-      <div class="v">${data.memberCode}</div>
-    </div>
-    <div class="exp-block">
-      <div class="k">Expire fin</div>
-      <div class="v">${formatMonthYear(data.expiresAt)}</div>
-    </div>
-  </div>
-
-  <div class="qr-wrap"><img src="${data.qrDataUrl}" /></div>
 </body>
 </html>`;
 }
