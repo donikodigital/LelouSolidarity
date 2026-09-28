@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+//backend/src/cards/cards.service.ts
+// v1.1 — chaque etape externe (rendu PDF, upload Cloudinary, envoi e-mail)
+// est desormais isolee : une erreur precise et exploitable au lieu d'un
+// 500 generique, et l'e-mail de confirmation n'est plus bloquant une fois
+// la carte deja generee et enregistree.
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as QRCode from 'qrcode';
 import { randomUUID } from 'crypto';
@@ -63,9 +68,25 @@ export class CardsService {
       status: 'ACTIVE',
     });
 
-    const pdfBuffer = await this.renderPdf(html);
+    let pdfBuffer: Buffer;
+    try {
+      pdfBuffer = await this.renderPdf(html);
+    } catch (err) {
+      this.logger.error(`Echec du rendu PDF pour ${member.email}: ${(err as Error).message}`);
+      throw new BadRequestException(
+        "La generation du PDF a echoue. Verifie la configuration du navigateur headless (Chromium).",
+      );
+    }
 
-    const upload = await this.uploads.uploadCardPdf(pdfBuffer, memberCode);
+    let upload: { secure_url: string; public_id: string };
+    try {
+      upload = await this.uploads.uploadCardPdf(pdfBuffer, memberCode);
+    } catch (err) {
+      this.logger.error(`Echec de l'upload Cloudinary pour ${member.email}: ${(err as Error).message}`);
+      throw new BadRequestException(
+        "Le PDF n'a pas pu etre enregistre sur Cloudinary. Verifie les identifiants et les autorisations du compte.",
+      );
+    }
 
     const updated = await this.prisma.member.update({
       where: { id: member.id },
@@ -82,13 +103,21 @@ export class CardsService {
       },
     });
 
-    await this.mail.sendCardReady(
-      updated.email,
-      updated.firstName,
-      memberCode,
-      cardExpiresAt,
-      pdfBuffer,
-    );
+    // La carte est deja generee et enregistree a ce stade : un echec
+    // d'envoi d'e-mail ne doit plus faire echouer la requete.
+    try {
+      await this.mail.sendCardReady(
+        updated.email,
+        updated.firstName,
+        memberCode,
+        cardExpiresAt,
+        pdfBuffer,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Echec de l'e-mail "carte prete" pour ${updated.email}: ${(err as Error).message}`,
+      );
+    }
 
     const action = isFirstGeneration ? 'generee' : isRenewal ? 'renouvelee' : 'reimprimee';
     this.logger.log(`Carte ${action} pour ${updated.email} (${memberCode})`);
