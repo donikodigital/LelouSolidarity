@@ -1,7 +1,10 @@
-//lelou-solidarity-backend/src/mail/mail.service.ts
+//backend/src/mail/mail.service.ts
+// v1.2 — FRONTEND_URL lu et valide via resolveFrontendUrl() (une seule
+// adresse, sans "/" final) : evite les liens casses dans les e-mails.
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { resolveFrontendUrl } from '../common/frontend-url';
 import {
   accessCodeEmail,
   cardExpiredEmail,
@@ -21,21 +24,22 @@ export class MailService {
   constructor(private readonly config: ConfigService) {
     this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
     this.from = this.config.get<string>('MAIL_FROM', 'LELOU SOLIDARITY <no-reply@example.org>');
-    this.frontendUrl = this.config.get<string>('FRONTEND_URL', '');
+    this.frontendUrl = resolveFrontendUrl(this.config.get<string>('FRONTEND_URL'));
   }
 
   async sendAccessCode(email: string, code: string) {
     const formUrl = `${this.frontendUrl}/formulaire`;
     return this.send(email, 'Votre code d\u2019acces LELOU SOLIDARITY', accessCodeEmail(code, formUrl));
   }
+
   async sendPasswordReset(email: string, name: string, token: string) {
-  const resetUrl = `${this.frontendUrl}/admin/reset-password/${token}`;
-  return this.send(
-    email,
-    'Reinitialisation de mot de passe - LELOU SOLIDARITY',
-    resetPasswordEmail(name, resetUrl),
-  );
-}
+    const resetUrl = `${this.frontendUrl}/admin/reset-password/${token}`;
+    return this.send(
+      email,
+      'Reinitialisation de mot de passe - LELOU SOLIDARITY',
+      resetPasswordEmail(name, resetUrl),
+    );
+  }
 
   async sendSubmissionReceived(email: string, firstName: string) {
     return this.send(email, 'Demande recue - LELOU SOLIDARITY', submissionReceivedEmail(firstName));

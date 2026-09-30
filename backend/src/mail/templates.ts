@@ -1,8 +1,20 @@
-//lelou-solidarity-backend/src/mail/templates.ts
+//backend/src/mail/templates.ts
 // Gabarits d'e-mails en HTML simple (compatible avec la plupart des clients
 // mail). Les couleurs viennent de src/common/theme.ts - un seul endroit a
 // modifier pour tout repercuter (carte + e-mails).
+// v1.1 — les valeurs saisies par les utilisateurs (prenom, nom...) sont
+// echappees avant d'etre inserees dans le HTML.
 import { THEME } from '../common/theme';
+
+/** Neutralise le HTML dans une valeur saisie par un utilisateur. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function layout(title: string, bodyHtml: string): string {
   return `
@@ -50,7 +62,7 @@ export function submissionReceivedEmail(firstName: string) {
   return layout(
     'Demande bien recue',
     `
-      <p>Bonjour ${firstName},</p>
+      <p>Bonjour ${escapeHtml(firstName)},</p>
       <p>Nous avons bien recu vos informations. Votre carte de membre est en cours de traitement par l'administrateur de l'association et vous sera envoyee par e-mail des qu'elle sera prete.</p>
       <p>Merci pour votre confiance.</p>
     `,
@@ -61,9 +73,9 @@ export function cardReadyEmail(firstName: string, memberCode: string, expiresAt:
   return layout(
     'Votre carte de membre est prete',
     `
-      <p>Bonjour ${firstName},</p>
-      <p>Votre carte de membre <strong>${memberCode}</strong> est prete et jointe a cet e-mail au format PDF.</p>
-      <p>Elle est valable jusqu'au <strong>${expiresAt}</strong>. Nous vous recommandons de l'imprimer et de la faire plastifier.</p>
+      <p>Bonjour ${escapeHtml(firstName)},</p>
+      <p>Votre carte de membre <strong>${escapeHtml(memberCode)}</strong> est prete et jointe a cet e-mail au format PDF.</p>
+      <p>Elle est valable jusqu'au <strong>${escapeHtml(expiresAt)}</strong>. Nous vous recommandons de l'imprimer et de la faire plastifier.</p>
       <p>Un QR code figure sur la carte : il permet a tout moment de verifier son authenticite et son statut.</p>
     `,
   );
@@ -73,8 +85,8 @@ export function expirationReminderEmail(firstName: string, expiresAt: string) {
   return layout(
     'Votre carte de membre arrive bientot a expiration',
     `
-      <p>Bonjour ${firstName},</p>
-      <p>Votre carte de membre arrivera a expiration le <strong>${expiresAt}</strong>.</p>
+      <p>Bonjour ${escapeHtml(firstName)},</p>
+      <p>Votre carte de membre arrivera a expiration le <strong>${escapeHtml(expiresAt)}</strong>.</p>
       <p>Merci de contacter le tresorier de l'association pour regulariser votre cotisation et permettre le renouvellement de votre carte.</p>
     `,
   );
@@ -84,17 +96,18 @@ export function cardExpiredEmail(firstName: string) {
   return layout(
     'Votre carte de membre a expire',
     `
-      <p>Bonjour ${firstName},</p>
+      <p>Bonjour ${escapeHtml(firstName)},</p>
       <p>Votre carte de membre est arrivee a expiration aujourd'hui.</p>
       <p>Merci de vous rapprocher du tresorier de l'association pour regulariser votre cotisation ; votre carte sera alors renouvelee.</p>
     `,
   );
 }
+
 export function resetPasswordEmail(name: string, resetUrl: string) {
   return layout(
     'Reinitialisation de votre mot de passe',
     `
-      <p>Bonjour ${name},</p>
+      <p>Bonjour ${escapeHtml(name)},</p>
       <p>Vous avez demande la reinitialisation de votre mot de passe administrateur pour <strong>${THEME.associationName}</strong>.</p>
       <p style="text-align:center;margin:24px 0;">
         <a href="${resetUrl}" style="background:${THEME.primary};color:#FFFFFF;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">

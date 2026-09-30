@@ -1,4 +1,6 @@
 //backend/src/cards/cards.service.ts
+// v1.3 — l'URL de verification du QR code utilise resolveFrontendUrl()
+// (meme source que les e-mails : une seule adresse, sans "/" final).
 // v1.2 — page PDF elargie pour accueillir recto + verso empiles, avec marge
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { MailService } from '../mail/mail.service';
+import { resolveFrontendUrl } from '../common/frontend-url';
 import { launchBrowser } from './browser.util';
 import { PAGE_HEIGHT_MM, PAGE_WIDTH_MM } from './theme';
 import { renderMemberCardHtml } from './card-template';
@@ -16,13 +19,16 @@ const CARD_VALIDITY_YEARS = 1;
 @Injectable()
 export class CardsService {
   private readonly logger = new Logger(CardsService.name);
+  private readonly frontendUrl: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploads: UploadsService,
     private readonly mail: MailService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.frontendUrl = resolveFrontendUrl(this.config.get<string>('FRONTEND_URL'));
+  }
 
   async generateCard(memberId: string) {
     const member = await this.prisma.member.findUnique({ where: { id: memberId } });
@@ -41,8 +47,7 @@ export class CardsService {
       ? addYears(cardIssuedAt, CARD_VALIDITY_YEARS)
       : member.cardExpiresAt ?? addYears(cardIssuedAt, CARD_VALIDITY_YEARS);
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', '');
-    const verifyUrl = `${frontendUrl}/verify/${verifyToken}`;
+    const verifyUrl = `${this.frontendUrl}/verify/${verifyToken}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, scale: 8 });
 
     const html = renderMemberCardHtml({
