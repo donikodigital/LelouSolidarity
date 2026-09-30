@@ -1,3 +1,4 @@
+//backend/src/members/dto/list-members-query.dto.ts
 import { IsEnum, IsOptional } from 'class-validator';
 import { CardStatus, MemberStatus } from '@prisma/client';
 

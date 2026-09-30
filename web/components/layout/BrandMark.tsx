@@ -1,3 +1,4 @@
+//web/components/layout/BrandMark.tsx
 import clsx from 'clsx';
 
 export function BrandMark({

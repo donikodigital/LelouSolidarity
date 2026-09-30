@@ -1,9 +1,12 @@
+//backend/src/members/members.controller.ts
 import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -15,6 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { MembersService } from './members.service';
 import { SubmitMemberDto } from './dto/submit-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 import { ListMembersQueryDto } from './dto/list-members-query.dto';
 
 @Controller()
@@ -50,5 +54,17 @@ export class MembersController {
   @Get('admin/members/:id')
   findOne(@Param('id') id: string) {
     return this.members.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('admin/members/:id')
+  update(@Param('id') id: string, @Body() dto: UpdateMemberDto) {
+    return this.members.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('admin/members/:id')
+  remove(@Param('id') id: string) {
+    return this.members.remove(id);
   }
 }

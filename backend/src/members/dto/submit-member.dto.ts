@@ -1,3 +1,4 @@
+//backend/src/members/dto/submit-member.dto.ts
 import { IsDateString, IsEmail, IsString, Length, MaxLength, MinLength } from 'class-validator';
 
 export class SubmitMemberDto {

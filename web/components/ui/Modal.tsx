@@ -11,9 +11,16 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Largeur maximale : 'md' (defaut) ou 'lg' pour les formulaires. */
+  size?: 'md' | 'lg';
 }
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+const sizes: Record<NonNullable<ModalProps['size']>, string> = {
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+};
+
+export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -33,7 +40,10 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ocean-900/40" onClick={onClose} aria-hidden="true" />
-      <Card className="relative z-10 w-full max-w-md p-6 shadow-card-hover">
+      {/* max-h + overflow : sur mobile, un long formulaire reste accessible en defilant */}
+      <Card
+        className={`relative z-10 w-full ${sizes[size]} max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5 shadow-card-hover sm:p-6`}
+      >
         <button
           type="button"
           onClick={onClose}

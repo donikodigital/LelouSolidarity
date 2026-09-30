@@ -1,3 +1,4 @@
+//backend/src/cards/cards.controller.ts
 import { Controller, Get, NotFoundException, Param, Post, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';

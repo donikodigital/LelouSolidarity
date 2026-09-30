@@ -1,4 +1,6 @@
 //backend/src/access-codes/access-codes.service.ts
+// v1.3 — remove() : un code "utilise" dont le membre a ete supprime peut
+// desormais etre supprime lui aussi (avant, il restait bloque a vie).
 // v1.2 — si l'envoi Resend echoue : suppression du code fantome
 // fraichement cree + remontee du message d'erreur reel de Resend a
 // l'administrateur (au lieu d'un 500 generique qui masquait la cause).
@@ -74,13 +76,20 @@ export class AccessCodesService {
     });
   }
 
-  /** Supprime un code pas encore utilise. */
+  /**
+   * Supprime un code d'acces. Refuse uniquement si un membre y est encore
+   * rattache : un code utilise dont le membre a ete supprime est "orphelin"
+   * et peut etre nettoye.
+   */
   async remove(id: string) {
-    const accessCode = await this.prisma.accessCode.findUnique({ where: { id } });
+    const accessCode = await this.prisma.accessCode.findUnique({
+      where: { id },
+      include: { member: { select: { id: true } } },
+    });
     if (!accessCode) {
       throw new NotFoundException("Code d'acces introuvable.");
     }
-    if (accessCode.used) {
+    if (accessCode.member) {
       throw new BadRequestException("Impossible de supprimer un code deja utilise par un membre.");
     }
 

@@ -13,15 +13,15 @@ export const metadata = {
 export default function FormulairePage() {
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-ocean-50 to-white">
-      <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
+      <div className="mx-auto w-full max-w-3xl px-3 py-8 sm:px-6 sm:py-14">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ocean-500 hover:text-ocean-700"
+          className="mb-5 inline-flex items-center gap-1.5 px-1 text-sm font-medium text-ocean-500 hover:text-ocean-700 sm:mb-6 sm:px-0"
         >
           <ArrowLeft className="h-4 w-4" /> Retour
         </Link>
 
-        <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-6 flex flex-col items-center px-2 text-center sm:mb-8">
           <BrandMark onDark={false} />
           <h1 className="mt-4 text-2xl font-bold text-ocean-800 sm:text-3xl">
             Formulaire d&apos;adhesion

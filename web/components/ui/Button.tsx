@@ -1,3 +1,4 @@
+//web/components/ui/Button.tsx
 'use client';
 
 import { ButtonHTMLAttributes, forwardRef } from 'react';
@@ -5,7 +6,7 @@ import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-solid';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
 }
@@ -19,6 +20,9 @@ const variants: Record<string, string> = {
     'bg-transparent text-ocean-600 hover:bg-ocean-50 focus-visible:ring-ocean-300',
   danger:
     'bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-300',
+  // Action destructive a confirmer (ex. bouton final d'une modale de suppression)
+  'danger-solid':
+    'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-900/10 focus-visible:ring-red-300',
 };
 
 const sizes: Record<string, string> = {

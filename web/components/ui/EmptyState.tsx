@@ -1,3 +1,4 @@
+//web/components/ui/EmptyState.tsx
 import { ReactNode } from 'react';
 
 export function EmptyState({

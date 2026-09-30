@@ -1,3 +1,4 @@
+//backend/src/members/members.module.ts
 import { Module } from '@nestjs/common';
 import { UploadsModule } from '../uploads/uploads.module';
 import { MailModule } from '../mail/mail.module';
