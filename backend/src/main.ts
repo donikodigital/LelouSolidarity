@@ -29,14 +29,32 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
+  // On récupère les origines depuis .env (Render) ou on met des valeurs par défaut
+  const envOrigins = (process.env.CORS_ORIGINS || '')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
 
+  // Liste globale des origines autorisées (celles de Render + celles codées en dur par sécurité)
+  const allowedOrigins = [
+    'https://lelousolidarity.win',
+    'https://www.lelousolidarity.win',
+    'http://localhost:3000',
+    ...envOrigins,
+  ];
+
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // Autorise les requêtes sans origin (Serveur, Postman) ou celles présentes dans la liste
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origine non autorisée par CORS: ${origin}`));
+      }
+    },
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
