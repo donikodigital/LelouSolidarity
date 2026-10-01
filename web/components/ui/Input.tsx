@@ -1,4 +1,4 @@
-//components/ui/Input.tsx
+//web/components/ui/Input.tsx
 'use client';
 
 import { InputHTMLAttributes, forwardRef, useState } from 'react';
@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={inputId} className="text-sm font-medium text-ocean-800">
+        <label htmlFor={inputId} className="text-[13px] font-semibold text-ocean-800">
           {label}
         </label>
         <div className="relative">
@@ -27,10 +27,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             type={isPassword ? (visible ? 'text' : 'password') : type}
             className={clsx(
-              'w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ocean-900 placeholder:text-slate-400',
-              'focus:outline-none focus:ring-2 focus:ring-ocean-300 focus:border-ocean-400',
-              isPassword && 'pr-10',
-              error ? 'border-red-300' : 'border-slate-200',
+              // text-base (16 px) sur mobile : évite le zoom automatique d'iOS au focus
+              'w-full rounded-xl border bg-white px-3.5 py-3 text-base text-ocean-900 shadow-sm shadow-slate-900/[0.03]',
+              'placeholder:text-slate-400 transition duration-150',
+              'focus:outline-none focus:ring-4 sm:py-2.5 sm:text-sm',
+              // Champ verrouillé : fond grisé, texte atténué, curseur « interdit »
+              'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none',
+              isPassword && 'pr-11',
+              error
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-200/50'
+                : 'border-slate-200 hover:border-slate-300 focus:border-ocean-500 focus:ring-ocean-300/30',
               className,
             )}
             {...props}
