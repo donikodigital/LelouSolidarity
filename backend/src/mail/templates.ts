@@ -38,7 +38,7 @@ function layout(title: string, bodyHtml: string): string {
 
 export function accessCodeEmail(code: string, formUrl: string) {
   return layout(
-    'Votre code d\u2019acces au formulaire membre',
+    'Votre code d\u2019accès au formulaire membre',
     `
       <p>Bonjour,</p>
       <p>Voici votre code personnel pour remplir le formulaire d'adhesion de <strong>${THEME.associationName}</strong> :</p>
@@ -60,10 +60,10 @@ export function accessCodeEmail(code: string, formUrl: string) {
 
 export function submissionReceivedEmail(firstName: string) {
   return layout(
-    'Demande bien recue',
+    'Demande bien reçue',
     `
       <p>Bonjour ${escapeHtml(firstName)},</p>
-      <p>Nous avons bien recu vos informations. Votre carte de membre est en cours de traitement par l'administrateur de l'association et vous sera envoyee par e-mail des qu'elle sera prete.</p>
+      <p>Nous avons bien reçu vos informations. Votre carte de membre est en cours de traitement par l'administrateur de l'association et vous sera envoyée par e-mail dès qu'elle sera prête.</p>
       <p>Merci pour votre confiance.</p>
     `,
   );
@@ -71,50 +71,50 @@ export function submissionReceivedEmail(firstName: string) {
 
 export function cardReadyEmail(firstName: string, memberCode: string, expiresAt: string) {
   return layout(
-    'Votre carte de membre est prete',
+    'Votre carte de membre est prête',
     `
       <p>Bonjour ${escapeHtml(firstName)},</p>
-      <p>Votre carte de membre <strong>${escapeHtml(memberCode)}</strong> est prete et jointe a cet e-mail au format PDF.</p>
+      <p>Votre carte de membre <strong>${escapeHtml(memberCode)}</strong> est prête et jointe à cet e-mail au format PDF.</p>
       <p>Elle est valable jusqu'au <strong>${escapeHtml(expiresAt)}</strong>. Nous vous recommandons de l'imprimer et de la faire plastifier.</p>
-      <p>Un QR code figure sur la carte : il permet a tout moment de verifier son authenticite et son statut.</p>
+      <p>Un QR code figure sur la carte : il permet à tout moment de vérifier son authenticité et son statut.</p>
     `,
   );
 }
 
 export function expirationReminderEmail(firstName: string, expiresAt: string) {
   return layout(
-    'Votre carte de membre arrive bientot a expiration',
+    'Votre carte de membre arrive bientot à expiration',
     `
       <p>Bonjour ${escapeHtml(firstName)},</p>
-      <p>Votre carte de membre arrivera a expiration le <strong>${escapeHtml(expiresAt)}</strong>.</p>
-      <p>Merci de contacter le tresorier de l'association pour regulariser votre cotisation et permettre le renouvellement de votre carte.</p>
+      <p>Votre carte de membre arrivera à expiration le <strong>${escapeHtml(expiresAt)}</strong>.</p>
+      <p>Merci de contacter le trésorier de l'association pour régulariser votre cotisation et permettre le renouvellement de votre carte.</p>
     `,
   );
 }
 
 export function cardExpiredEmail(firstName: string) {
   return layout(
-    'Votre carte de membre a expire',
+    'Votre carte de membre a expiré',
     `
       <p>Bonjour ${escapeHtml(firstName)},</p>
-      <p>Votre carte de membre est arrivee a expiration aujourd'hui.</p>
-      <p>Merci de vous rapprocher du tresorier de l'association pour regulariser votre cotisation ; votre carte sera alors renouvelee.</p>
+      <p>Votre carte de membre est arrivée à expiration aujourd'hui.</p>
+      <p>Merci de vous rapprocher du trésorier de l'association pour régulariser votre cotisation ; votre carte sera alors renouvelée.</p>
     `,
   );
 }
 
 export function resetPasswordEmail(name: string, resetUrl: string) {
   return layout(
-    'Reinitialisation de votre mot de passe',
+    'Réinitialisation de votre mot de passe',
     `
       <p>Bonjour ${escapeHtml(name)},</p>
-      <p>Vous avez demande la reinitialisation de votre mot de passe administrateur pour <strong>${THEME.associationName}</strong>.</p>
+      <p>Vous avez demandé la réinitialisation de votre mot de passe administrateur pour <strong>${THEME.associationName}</strong>.</p>
       <p style="text-align:center;margin:24px 0;">
         <a href="${resetUrl}" style="background:${THEME.primary};color:#FFFFFF;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">
-          Reinitialiser mon mot de passe
+          Réinitialiser mon mot de passe
         </a>
       </p>
-      <p style="color:#8AA0AE;font-size:13px;">Ce lien expire dans 1 heure. Si vous n'etes pas a l'origine de cette demande, ignorez cet e-mail.</p>
+      <p style="color:#8AA0AE;font-size:13px;">Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
     `,
   );
 }

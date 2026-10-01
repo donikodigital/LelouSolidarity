@@ -29,20 +29,20 @@ export class MailService {
 
   async sendAccessCode(email: string, code: string) {
     const formUrl = `${this.frontendUrl}/formulaire`;
-    return this.send(email, 'Votre code d\u2019acces LELOU SOLIDARITY', accessCodeEmail(code, formUrl));
+    return this.send(email, 'Votre code d\u2019accès LELOU SOLIDARITY', accessCodeEmail(code, formUrl));
   }
 
   async sendPasswordReset(email: string, name: string, token: string) {
     const resetUrl = `${this.frontendUrl}/admin/reset-password/${token}`;
     return this.send(
       email,
-      'Reinitialisation de mot de passe - LELOU SOLIDARITY',
+      'Réinitialisation de mot de passe - LELOU SOLIDARITY',
       resetPasswordEmail(name, resetUrl),
     );
   }
 
   async sendSubmissionReceived(email: string, firstName: string) {
-    return this.send(email, 'Demande recue - LELOU SOLIDARITY', submissionReceivedEmail(firstName));
+    return this.send(email, 'Demande reçue - LELOU SOLIDARITY', submissionReceivedEmail(firstName));
   }
 
   async sendCardReady(
@@ -68,13 +68,13 @@ export class MailService {
   async sendExpirationReminder(email: string, firstName: string, expiresAt: Date) {
     return this.send(
       email,
-      'Votre carte arrive a expiration - LELOU SOLIDARITY',
+      'Votre carte arrive à expiration - LELOU SOLIDARITY',
       expirationReminderEmail(firstName, formatDate(expiresAt)),
     );
   }
 
   async sendCardExpired(email: string, firstName: string) {
-    return this.send(email, 'Votre carte a expire - LELOU SOLIDARITY', cardExpiredEmail(firstName));
+    return this.send(email, 'Votre carte a expiré - LELOU SOLIDARITY', cardExpiredEmail(firstName));
   }
 
   private async send(
