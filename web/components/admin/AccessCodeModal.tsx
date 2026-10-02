@@ -15,7 +15,7 @@ interface AccessCodeModalProps {
   record: AccessCodeRecord | null;
   open: boolean;
   onClose: () => void;
-  /** Appele apres une modification ou une suppression reussie, pour rafraichir la liste. */
+  /** Appelé après une modification ou une suppression réussie, pour rafraîchir la liste. */
   onChanged: () => void;
 }
 
@@ -52,7 +52,7 @@ export function AccessCodeModal({ record, open, onClose, onChanged }: AccessCode
       onChanged();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Echec de la mise a jour.");
+      setError(err instanceof ApiError ? err.message : 'Échec de la mise à jour.');
     } finally {
       setSaving(false);
     }
@@ -68,31 +68,31 @@ export function AccessCodeModal({ record, open, onClose, onChanged }: AccessCode
       onChanged();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Echec de la suppression.");
+      setError(err instanceof ApiError ? err.message : 'Échec de la suppression.');
       setDeleting(false);
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Code d'acces">
+    <Modal open={open} onClose={onClose} title="Code d'accès">
       {error && (
         <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" /> {error}
+          <AlertCircle className="h-4 w-4 flex-shrink-0" /> <span className="min-w-0">{error}</span>
         </div>
       )}
 
       <div className="mb-5 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="rounded-full bg-ocean-50 px-2.5 py-1 text-xs font-semibold tracking-widest text-ocean-600">
             {record.code}
           </span>
           <span
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+            className={`flex flex-shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
               record.used ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
             }`}
           >
             {record.used ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
-            {record.used ? 'Utilise' : 'En attente'}
+            {record.used ? 'Utilisé' : 'En attente'}
           </span>
         </div>
 
@@ -104,17 +104,17 @@ export function AccessCodeModal({ record, open, onClose, onChanged }: AccessCode
             onChange={(e) => setEmail(e.target.value)}
           />
         ) : (
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-ocean-400">Adresse e-mail</p>
-            <p className="text-sm font-semibold text-ocean-800">{record.email}</p>
+            <p className="break-all text-sm font-semibold text-ocean-800">{record.email}</p>
           </div>
         )}
 
-        <p className="text-xs text-ocean-400">Envoye le {formatDate(record.createdAt)}</p>
+        <p className="text-xs text-ocean-400">Envoyé le {formatDate(record.createdAt)}</p>
 
         {record.used && record.member && (
           <p className="text-xs text-ocean-400">
-            Utilise par{' '}
+            Utilisé par{' '}
             <span className="font-medium text-ocean-600">
               {record.member.firstName} {record.member.lastName}
             </span>
@@ -123,7 +123,7 @@ export function AccessCodeModal({ record, open, onClose, onChanged }: AccessCode
 
         {!canEdit && mode === 'view' && (
           <p className="text-xs text-ocean-400">
-            Ce code a deja ete utilise par un membre : il ne peut plus etre modifie ni supprime.
+            Ce code a déjà été utilisé par un membre : il ne peut plus être modifié ni supprimé.
           </p>
         )}
       </div>
@@ -153,7 +153,7 @@ export function AccessCodeModal({ record, open, onClose, onChanged }: AccessCode
       {mode === 'confirm-delete' && (
         <div className="flex flex-col gap-3 rounded-xl bg-red-50 p-4">
           <p className="text-sm font-medium text-red-700">
-            Supprimer definitivement ce code d&apos;acces ? Cette action est irreversible.
+            Supprimer définitivement ce code d&apos;accès ? Cette action est irréversible.
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setMode('view')} disabled={deleting}>

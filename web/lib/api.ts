@@ -1,4 +1,4 @@
-//lelou-solidarity-frontend/lib/api.ts
+//web/lib/api.ts
 import { clearSession } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -18,7 +18,7 @@ async function parseResponse(res: Response) {
   if (!res.ok) {
     const message =
       (body && (body.message || (Array.isArray(body.message) && body.message[0]))) ||
-      "Une erreur est survenue, merci de reessayer.";
+      'Une erreur est survenue, merci de réessayer.';
     throw new ApiError(Array.isArray(message) ? message[0] : message, res.status);
   }
 
@@ -47,12 +47,12 @@ export async function apiAdmin(path: string, token: string, init: RequestInit = 
   });
 
   if (res.status === 401 && typeof window !== 'undefined') {
-    // Session expiree ou invalide (token JWT perime) : on nettoie et on
-    // renvoie vers la connexion plutot que d'afficher une erreur
-    // generique sans issue a l'administrateur.
+    // Session expirée ou invalide (token JWT périmé) : on nettoie et on
+    // renvoie vers la connexion plutôt que d'afficher une erreur
+    // générique sans issue à l'administrateur.
     clearSession();
     window.location.href = '/admin/login';
-    // Empeche le code appelant de continuer avec une reponse invalide
+    // Empêche le code appelant de continuer avec une réponse invalide
     // pendant que la redirection se produit.
     return new Promise(() => {});
   }

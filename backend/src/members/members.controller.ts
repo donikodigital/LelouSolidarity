@@ -1,4 +1,6 @@
 //backend/src/members/members.controller.ts
+// v1.1 — ajout de GET public/access-codes/:code/status : le formulaire public
+// vérifie qu'un lien est valide avant de s'afficher (et refuse un lien déjà utilisé).
 import {
   BadRequestException,
   Body,
@@ -25,7 +27,16 @@ import { ListMembersQueryDto } from './dto/list-members-query.dto';
 export class MembersController {
   constructor(private readonly members: MembersService) {}
 
-  // --- Formulaire public (protege par code d'acces, pas par JWT) ---
+  // --- Formulaire public (protégé par code d'accès, pas par JWT) ---
+
+  // Vérifie l'état d'un lien avant d'afficher le formulaire. Limité en débit
+  // pour empêcher de tester des codes en masse.
+  @Get('public/access-codes/:code/status')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  accessCodeStatus(@Param('code') code: string) {
+    return this.members.checkAccessCode(code);
+  }
+
   @Post('public/members/submit')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseInterceptors(
@@ -38,7 +49,7 @@ export class MembersController {
     @UploadedFile() photo?: Express.Multer.File,
   ) {
     if (!photo) {
-      throw new BadRequestException("La photo d'identite est obligatoire.");
+      throw new BadRequestException('La photo d’identité est obligatoire.');
     }
     return this.members.submit(dto, photo);
   }

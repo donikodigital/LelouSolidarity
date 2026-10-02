@@ -1,3 +1,4 @@
+//web/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
 import { ASSOCIATION_NAME, ASSOCIATION_TAGLINE } from '@/lib/constants';
@@ -14,3 +15,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
+

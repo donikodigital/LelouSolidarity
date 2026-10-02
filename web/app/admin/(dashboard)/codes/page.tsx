@@ -1,4 +1,6 @@
 //web/app/admin/(dashboard)/codes/page.tsx
+// v1.3 — grille « grid-cols-1 + min-w-0 » : les cartes ne dépassent plus de
+// l'écran sur mobile (plus de défilement horizontal) ; accents rétablis.
 // v1.2 — ouverture de la modale au clic sur une carte
 'use client';
 
@@ -35,7 +37,7 @@ export default function CodesPage() {
       const data = await apiAdmin('/admin/access-codes', session.accessToken);
       setCodes(data);
     } catch {
-      setLoadError('Impossible de charger les codes d\u2019acces.');
+      setLoadError('Impossible de charger les codes d’accès.');
     } finally {
       setLoading(false);
     }
@@ -55,27 +57,29 @@ export default function CodesPage() {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
-      setSendSuccess(`Code envoye a ${email}.`);
+      setSendSuccess(`Code envoyé à ${email}.`);
       setEmail('');
       load();
     } catch (err) {
-      setSendError(err instanceof ApiError ? err.message : "Echec de l'envoi du code.");
+      setSendError(err instanceof ApiError ? err.message : 'Échec de l’envoi du code.');
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex w-full min-w-0 flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-ocean-800">Codes d&apos;acces</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ocean-800 sm:text-3xl">
+          Codes d&apos;accès
+        </h1>
         <p className="mt-1 text-sm text-ocean-400">
-          Un code personnel doit etre envoye a chaque futur membre avant qu&apos;il puisse
+          Un code personnel doit être envoyé à chaque futur membre avant qu&apos;il puisse
           remplir le formulaire.
         </p>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="mb-4 flex items-center gap-2 text-ocean-700">
           <KeyRound className="h-4 w-4" />
           <h2 className="text-sm font-bold uppercase tracking-wide">Envoyer un nouveau code</h2>
@@ -83,17 +87,18 @@ export default function CodesPage() {
 
         {sendError && (
           <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
-            <AlertCircle className="h-4 w-4" /> {sendError}
+            <AlertCircle className="h-4 w-4 flex-shrink-0" /> <span className="min-w-0">{sendError}</span>
           </div>
         )}
         {sendSuccess && (
           <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-700">
-            <CheckCircle2 className="h-4 w-4" /> {sendSuccess}
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />{' '}
+            <span className="min-w-0 break-words">{sendSuccess}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <Input
               label="Adresse e-mail du membre"
               type="email"
@@ -110,9 +115,9 @@ export default function CodesPage() {
         </form>
       </Card>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-ocean-400">
-          Codes deja envoyes
+          Codes déjà envoyés
         </h2>
 
         {loading && (
@@ -123,20 +128,22 @@ export default function CodesPage() {
 
         {loadError && (
           <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            <AlertCircle className="h-4 w-4" /> {loadError}
+            <AlertCircle className="h-4 w-4 flex-shrink-0" /> {loadError}
           </div>
         )}
 
         {!loading && codes && codes.length === 0 && (
           <EmptyState
             icon={<KeyRound className="h-8 w-8" />}
-            title="Aucun code envoye pour l'instant"
-            description="Les codes que vous envoyez apparaitront ici avec leur statut."
+            title="Aucun code envoyé pour l'instant"
+            description="Les codes que vous envoyez apparaîtront ici avec leur statut."
           />
         )}
 
         {!loading && codes && codes.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          // grid-cols-1 = une colonne de largeur « minmax(0, 1fr) » : sans elle, la
+          // colonne s'élargit au contenu le plus long et la page défile à l'horizontale.
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
             {codes.map((record) => (
               <AccessCodeCard key={record.id} record={record} onClick={() => setSelected(record)} />
             ))}

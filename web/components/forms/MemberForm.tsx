@@ -6,12 +6,15 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
+  Ban,
   CheckCircle2,
-  KeyRound,
+  Loader2,
   Lock,
+  Mail,
   MapPin,
   Phone,
   User,
+  WifiOff,
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -60,10 +63,23 @@ const GOLD_BAR = 'h-1.5 bg-gradient-to-r from-[#F3E2A9] via-[#D8B65C] to-[#9A7B2
 
 const MIN_BIRTH_YEAR = 1900;
 
-// Le lien du bouton « Remplir le formulaire » (dans l'e-mail) ajoute le code
-// d'accès dans l'adresse : /formulaire?code=XXXXXXXX
+// Délai au-delà duquel on prévient que le serveur se réveille (hébergement
+// gratuit : la première requête après une période d'inactivité est lente).
+const SLOW_CHECK_MS = 5000;
+
+// Le lien du bouton « Remplir le formulaire » (dans l'e-mail) contient le code
+// d'accès : /formulaire?code=XXXXXXXX
 function readCodeFromUrl(raw: string | null): string {
   return (raw ?? '').trim().toUpperCase();
+}
+
+type AccessState = 'checking' | 'valid' | 'used' | 'invalid' | 'missing' | 'error';
+type RemoteStatus = 'VALID' | 'USED' | 'INVALID';
+
+// Demande au serveur si le lien est encore utilisable
+async function fetchAccessStatus(code: string): Promise<RemoteStatus> {
+  const res = await apiPublic(`/public/access-codes/${encodeURIComponent(code)}/status`);
+  return res?.status === 'VALID' || res?.status === 'USED' ? res.status : 'INVALID';
 }
 
 function SectionTitle({
@@ -86,23 +102,98 @@ function SectionTitle({
   );
 }
 
+// Carte centrée utilisée pour tous les écrans « message » (vérification,
+// lien déjà utilisé, lien invalide, confirmation d'envoi...)
+function MessageCard({
+  children,
+  withLogo = true,
+}: {
+  children: ReactNode;
+  withLogo?: boolean;
+}) {
+  return (
+    <div className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white text-center shadow-xl shadow-ocean-900/10 ring-1 ring-slate-900/5">
+      <div className={GOLD_BAR} />
+      <div className="flex flex-col items-center gap-4 px-5 py-12 sm:px-10 sm:py-14">
+        {withLogo && <Logo size={72} ring />}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function StatusIcon({
+  icon: Icon,
+  tone,
+  spin = false,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  tone: 'green' | 'amber' | 'red' | 'blue';
+  spin?: boolean;
+}) {
+  const tones = {
+    green: 'bg-emerald-50 text-emerald-600 ring-emerald-50/60',
+    amber: 'bg-amber-50 text-amber-600 ring-amber-50/60',
+    red: 'bg-red-50 text-red-600 ring-red-50/60',
+    blue: 'bg-ocean-50 text-ocean-600 ring-ocean-50/60',
+  };
+  return (
+    <div className={`flex h-12 w-12 items-center justify-center rounded-full ring-8 ${tones[tone]}`}>
+      <Icon className={`h-7 w-7 ${spin ? 'animate-spin' : ''}`} />
+    </div>
+  );
+}
+
+const MESSAGE_TITLE = 'text-2xl font-extrabold tracking-tight text-ocean-800';
+const MESSAGE_TEXT = 'text-sm leading-relaxed text-ocean-500';
+const MESSAGE_BUTTON =
+  'mt-2 inline-flex items-center justify-center rounded-xl bg-ocean-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-ocean-800/25 transition hover:bg-ocean-800';
+
 export function MemberForm() {
   const searchParams = useSearchParams();
-  const codeFromUrl = readCodeFromUrl(searchParams.get('code'));
-  // Si le code vient du lien, le champ est rempli et verrouillé.
-  // Sans code dans le lien (page ouverte directement), le champ reste modifiable.
-  const codeLocked = codeFromUrl.length > 0;
+  const code = readCodeFromUrl(searchParams.get('code'));
 
-  const [form, setForm] = useState<FormState>(() => ({
-    ...initialState,
-    code: codeFromUrl,
-  }));
+  const [access, setAccess] = useState<AccessState>(code ? 'checking' : 'missing');
+  const [slowCheck, setSlowCheck] = useState(false);
+  const [checkAttempt, setCheckAttempt] = useState(0);
+
+  const [form, setForm] = useState<FormState>(() => ({ ...initialState, code }));
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const errorRef = useRef<HTMLDivElement | null>(null);
+
+  // Vérification du lien à l'ouverture : un lien déjà utilisé ou inconnu
+  // n'ouvre jamais le formulaire.
+  useEffect(() => {
+    if (!code) {
+      setAccess('missing');
+      return;
+    }
+
+    let cancelled = false;
+    setAccess('checking');
+    setSlowCheck(false);
+    const slowTimer = setTimeout(() => setSlowCheck(true), SLOW_CHECK_MS);
+
+    fetchAccessStatus(code)
+      .then((status) => {
+        if (cancelled) return;
+        setAccess(status === 'VALID' ? 'valid' : status === 'USED' ? 'used' : 'invalid');
+      })
+      .catch(() => {
+        // Serveur injoignable, en cours de réveil, ou trop de requêtes
+        if (!cancelled) setAccess('error');
+      })
+      .finally(() => clearTimeout(slowTimer));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(slowTimer);
+    };
+  }, [code, checkAttempt]);
 
   // Sur mobile, le message d'erreur est en haut du formulaire : on y ramène l'écran
   useEffect(() => {
@@ -141,10 +232,11 @@ export function MemberForm() {
 
     try {
       const body = new FormData();
-      const { birthYear, code, ...rest } = form;
-      // Le code verrouillé vient toujours du lien, jamais du state modifiable
-      body.append('code', codeLocked ? codeFromUrl : code);
-      Object.entries(rest).forEach(([key, value]) => body.append(key, value));
+      const { birthYear, ...rest } = form;
+      // Le code vient toujours du lien, jamais d'un champ modifiable
+      Object.entries(rest).forEach(([key, value]) =>
+        body.append(key, key === 'code' ? code : value),
+      );
       // Le backend attend toujours "birthDate" : on envoie l'année au 1er janvier
       body.append('birthDate', `${birthYear}-01-01`);
       body.append('photo', photo);
@@ -154,6 +246,16 @@ export function MemberForm() {
     } catch (err) {
       if (err instanceof ApiError) {
         setSubmitError(err.message);
+        // Si l'envoi a échoué parce que le lien vient d'être consommé (autre
+        // onglet, double envoi...), on bascule sur l'écran « lien déjà utilisé ».
+        // Les données saisies sont conservées dans tous les autres cas.
+        try {
+          const status = await fetchAccessStatus(code);
+          if (status === 'USED') setAccess('used');
+          else if (status === 'INVALID') setAccess('invalid');
+        } catch {
+          /* vérification impossible : on garde le formulaire et le message d'erreur */
+        }
       } else {
         setSubmitError('Impossible d’envoyer le formulaire, vérifiez votre connexion.');
       }
@@ -162,33 +264,111 @@ export function MemberForm() {
     }
   }
 
+  // ---------- Écrans « message » ----------
+
   if (success) {
     return (
-      <div className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white text-center shadow-xl shadow-ocean-900/10 ring-1 ring-slate-900/5">
-        <div className={GOLD_BAR} />
-        <div className="flex flex-col items-center gap-4 px-5 py-12 sm:px-10 sm:py-14">
-          <Logo size={72} ring />
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-8 ring-emerald-50/60">
-            <CheckCircle2 className="h-7 w-7" />
-          </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-ocean-800">
-            Demande envoyée !
-          </h2>
-          <p className="text-sm leading-relaxed text-ocean-500">
-            Nous avons bien reçu vos informations. Un e-mail de confirmation vous a été
-            envoyé. Votre carte de membre vous parviendra par e-mail dès qu&apos;elle
-            sera générée par l&apos;administrateur.
-          </p>
-          <Link
-            href="/"
-            className="mt-2 inline-flex items-center justify-center rounded-xl bg-ocean-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-ocean-800/25 transition hover:bg-ocean-800"
-          >
-            Retour à l&apos;accueil
-          </Link>
-        </div>
-      </div>
+      <MessageCard>
+        <StatusIcon icon={CheckCircle2} tone="green" />
+        <h2 className={MESSAGE_TITLE}>Demande envoyée !</h2>
+        <p className={MESSAGE_TEXT}>
+          Nous avons bien reçu vos informations. Un e-mail de confirmation vous a été
+          envoyé. Votre carte de membre vous parviendra par e-mail dès qu&apos;elle
+          sera générée par l&apos;administrateur.
+        </p>
+        <Link href="/" className={MESSAGE_BUTTON}>
+          Retour à l&apos;accueil
+        </Link>
+      </MessageCard>
     );
   }
+
+  if (access === 'checking') {
+    return (
+      <MessageCard>
+        <StatusIcon icon={Loader2} tone="blue" spin />
+        <h2 className={MESSAGE_TITLE}>Vérification de votre lien…</h2>
+        <p className={MESSAGE_TEXT}>
+          {slowCheck
+            ? 'Le serveur se réveille, cela peut prendre quelques secondes. Merci de patienter.'
+            : 'Un instant, nous préparons votre formulaire.'}
+        </p>
+      </MessageCard>
+    );
+  }
+
+  if (access === 'used') {
+    return (
+      <MessageCard>
+        <StatusIcon icon={CheckCircle2} tone="amber" />
+        <h2 className={MESSAGE_TITLE}>Ce lien a déjà été utilisé</h2>
+        <p className={MESSAGE_TEXT}>
+          Une demande d&apos;adhésion a déjà été envoyée avec ce lien : le formulaire ne
+          peut plus être rempli. Si c&apos;est votre demande, vous recevrez votre carte de
+          membre par e-mail. Pour toute question ou correction, contactez l&apos;association.
+        </p>
+        <Link href="/" className={MESSAGE_BUTTON}>
+          Retour à l&apos;accueil
+        </Link>
+      </MessageCard>
+    );
+  }
+
+  if (access === 'invalid') {
+    return (
+      <MessageCard>
+        <StatusIcon icon={Ban} tone="red" />
+        <h2 className={MESSAGE_TITLE}>Lien invalide</h2>
+        <p className={MESSAGE_TEXT}>
+          Ce lien n&apos;est pas reconnu. Utilisez le bouton « Remplir le formulaire » de
+          l&apos;e-mail que vous avez reçu, ou contactez l&apos;association pour obtenir un
+          nouveau lien.
+        </p>
+        <Link href="/" className={MESSAGE_BUTTON}>
+          Retour à l&apos;accueil
+        </Link>
+      </MessageCard>
+    );
+  }
+
+  if (access === 'missing') {
+    return (
+      <MessageCard>
+        <StatusIcon icon={Mail} tone="blue" />
+        <h2 className={MESSAGE_TITLE}>Accès par e-mail uniquement</h2>
+        <p className={MESSAGE_TEXT}>
+          Le formulaire s&apos;ouvre depuis le lien personnel que vous avez reçu par e-mail.
+          Cliquez sur le bouton « Remplir le formulaire » de ce message. Pas de lien ?
+          Contactez l&apos;association pour en recevoir un.
+        </p>
+        <Link href="/" className={MESSAGE_BUTTON}>
+          Retour à l&apos;accueil
+        </Link>
+      </MessageCard>
+    );
+  }
+
+  if (access === 'error') {
+    return (
+      <MessageCard>
+        <StatusIcon icon={WifiOff} tone="amber" />
+        <h2 className={MESSAGE_TITLE}>Vérification impossible</h2>
+        <p className={MESSAGE_TEXT}>
+          Nous n&apos;arrivons pas à joindre le serveur pour vérifier votre lien. Vérifiez
+          votre connexion puis réessayez : votre lien reste valable.
+        </p>
+        <button
+          type="button"
+          onClick={() => setCheckAttempt((n) => n + 1)}
+          className={MESSAGE_BUTTON}
+        >
+          Réessayer
+        </button>
+      </MessageCard>
+    );
+  }
+
+  // ---------- Formulaire (lien valide) ----------
 
   return (
     <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-ocean-900/10 ring-1 ring-slate-900/5">
@@ -206,33 +386,28 @@ export function MemberForm() {
           </div>
         )}
 
-        {/* Code d'accès */}
+        {/* Code d'accès : rempli automatiquement depuis le lien, non modifiable */}
         <section className="relative overflow-hidden rounded-2xl border border-[#D8B65C]/40 bg-gradient-to-br from-ocean-50 to-white p-4 pl-5 sm:p-5 sm:pl-6">
           <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#F3E2A9] to-[#9A7B2F]" />
           <div className="mb-3 flex items-center gap-3">
             <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[#D8B65C]/15 text-[#9A7B2F]">
-              {codeLocked ? <Lock className="h-[18px] w-[18px]" /> : <KeyRound className="h-[18px] w-[18px]" />}
+              <Lock className="h-[18px] w-[18px]" />
             </span>
             <h2 className="text-[13px] font-bold uppercase tracking-[0.12em] text-ocean-700">
               Code d&apos;accès
             </h2>
           </div>
           <Input
-            label={codeLocked ? 'Votre code d’accès' : 'Code reçu par e-mail'}
+            label="Votre code d’accès"
             name="code"
-            required
             value={form.code}
-            onChange={(e) => update('code', e.target.value.toUpperCase())}
-            placeholder="EX: 7KQ9PXWM"
-            disabled={codeLocked}
-            readOnly={codeLocked}
+            readOnly
+            disabled
             className="font-semibold uppercase tracking-[0.2em]"
           />
-          {codeLocked && (
-            <p className="mt-2 text-xs text-ocean-500">
-              Votre code a été renseigné automatiquement.
-            </p>
-          )}
+          <p className="mt-2 text-xs text-ocean-500">
+            Votre code a été renseigné automatiquement.
+          </p>
         </section>
 
         {/* Informations personnelles */}
@@ -357,7 +532,9 @@ export function MemberForm() {
           <Button type="submit" size="lg" loading={submitting} className="w-full">
             {submitting ? 'Envoi en cours...' : 'Envoyer ma demande'}
           </Button>
-          <p className="text-center text-xs text-slate-500">Tous les champs sont obligatoires.</p>
+          <p className="text-center text-xs text-slate-500">
+            Tous les champs sont obligatoires. Ce lien ne peut être utilisé qu&apos;une seule fois.
+          </p>
         </div>
       </form>
     </div>

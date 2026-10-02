@@ -1,3 +1,4 @@
+//web/components/ui/PhotoDropzone.tsx
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -35,11 +36,11 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
       if (!candidate) return;
 
       if (!ALLOWED_TYPES.includes(candidate.type)) {
-        setLocalError('Format non supporte : utilisez une photo JPG ou PNG.');
+        setLocalError('Format non supporté : utilisez une photo JPG ou PNG.');
         return;
       }
       if (candidate.size > MAX_BYTES) {
-        setLocalError('La photo depasse 10 Mo, merci d\u2019en choisir une plus legere.');
+        setLocalError('La photo dépasse 10 Mo, merci d’en choisir une plus légère.');
         return;
       }
       setLocalError(null);
@@ -52,7 +53,7 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-ocean-800">Photo d&apos;identite</label>
+      <label className="text-[13px] font-semibold text-ocean-800">Photo d&apos;identité</label>
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -66,8 +67,10 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
         }}
         onClick={() => inputRef.current?.click()}
         className={clsx(
-          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors',
-          dragActive ? 'border-ocean-400 bg-ocean-50' : 'border-slate-200 bg-slate-50/60',
+          'group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition-all duration-200',
+          dragActive
+            ? 'border-[#D8B65C] bg-amber-50/60'
+            : 'border-slate-200 bg-slate-50/60 hover:border-ocean-300 hover:bg-ocean-50/50',
           shownError && 'border-red-300',
         )}
       >
@@ -83,8 +86,8 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
           <div className="flex flex-col items-center gap-3">
             <img
               src={preview}
-              alt="Apercu"
-              className="h-24 w-24 rounded-full border-2 border-white object-cover shadow-card"
+              alt="Aperçu"
+              className="h-28 w-28 rounded-full border-4 border-white object-cover shadow-card ring-2 ring-[#D8B65C]"
             />
             <div className="flex gap-2">
               <button
@@ -111,11 +114,11 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
           </div>
         ) : (
           <>
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-ocean-50 text-ocean-500">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-ocean-500 to-ocean-700 text-white shadow-md shadow-ocean-700/25 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110">
               <UploadCloud className="h-5 w-5" />
             </div>
-            <p className="text-sm font-medium text-ocean-700">
-              Cliquez ou glissez votre photo ici
+            <p className="text-sm font-semibold text-ocean-700">
+              Touchez ou glissez votre photo ici
             </p>
             <p className="text-xs text-ocean-400">JPG ou PNG, 10 Mo maximum</p>
           </>

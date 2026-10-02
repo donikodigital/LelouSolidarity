@@ -2,6 +2,10 @@
 // Gabarits d'e-mails en HTML simple (compatible avec la plupart des clients
 // mail). Les couleurs viennent de src/common/theme.ts - un seul endroit à
 // modifier pour tout répercuter (carte + e-mails).
+// v1.5 — nouvel e-mail destiné aux administrateurs : demande de formulaire
+// d'adhésion faite depuis la page d'accueil (formRequestEmail).
+// v1.4 — e-mail d'accès : le code n'est plus affiché (il est contenu dans le
+// lien du bouton) ; le message précise que le lien est à usage unique.
 // v1.3 — logo de l'association dans l'en-tête de chaque e-mail (image
 // hébergée : <FRONTEND_URL>/logo.png, fournie en paramètre `logoUrl`) et
 // liseré or sous l'en-tête.
@@ -50,24 +54,19 @@ function layout(title: string, bodyHtml: string, logoUrl: string): string {
   </div>`;
 }
 
-export function accessCodeEmail(code: string, formUrl: string, logoUrl: string) {
+export function accessCodeEmail(formUrl: string, logoUrl: string) {
   return layout(
-    'Votre code d’accès au formulaire membre',
+    'Votre accès au formulaire d’adhésion',
     `
       <p>Bonjour,</p>
-      <p>Voici votre code personnel pour remplir le formulaire d'adhésion de <strong>${THEME.associationName}</strong> :</p>
-      <p style="text-align:center;margin:24px 0;">
-        <span style="display:inline-block;background:${THEME.primaryLightTint};color:${THEME.primaryDark};font-size:24px;font-weight:bold;letter-spacing:4px;padding:12px 24px;border-radius:8px;border:1px solid ${THEME.accentGold};">
-          ${escapeHtml(code)}
-        </span>
-      </p>
-      <p>Cliquez sur le bouton ci-dessous : le formulaire s'ouvre avec votre code déjà renseigné, vous n'avez rien à recopier.</p>
+      <p>Nous avons le plaisir de vous inviter à remplir votre formulaire d'adhésion à <strong>${THEME.associationName}</strong>.</p>
+      <p>Cliquez sur le bouton ci-dessous pour y accéder : votre accès personnel est déjà activé, vous n'avez aucun code à saisir.</p>
       <p style="text-align:center;margin:24px 0;">
         <a href="${escapeHtml(formUrl)}" style="background:${THEME.primary};color:#FFFFFF;text-decoration:none;padding:13px 28px;border-radius:8px;font-weight:bold;display:inline-block;border-bottom:3px solid ${THEME.accentGold};">
           Remplir le formulaire
         </a>
       </p>
-      <p style="color:#8AA0AE;font-size:13px;">Si le champ du code apparaît vide, saisissez simplement le code ci-dessus. Ce code est personnel, ne le partagez pas.</p>
+      <p style="color:#8AA0AE;font-size:13px;">Ce lien est personnel et ne peut être utilisé qu'une seule fois : ne le partagez pas. Une fois votre demande envoyée, il ne permettra plus d'ouvrir le formulaire.</p>
     `,
     logoUrl,
   );
@@ -139,6 +138,53 @@ export function resetPasswordEmail(name: string, resetUrl: string, logoUrl: stri
         </a>
       </p>
       <p style="color:#8AA0AE;font-size:13px;">Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
+    `,
+    logoUrl,
+  );
+}
+
+export interface FormRequestEmailData {
+  firstName: string;
+  lastName: string;
+  city: string;
+  email: string;
+  phone: string;
+  message: string;
+}
+
+function infoRow(label: string, valueHtml: string) {
+  return `
+    <tr>
+      <td style="padding:6px 12px 6px 0;color:#8AA0AE;font-size:13px;white-space:nowrap;vertical-align:top;">${label}</td>
+      <td style="padding:6px 0;color:#233241;font-size:15px;font-weight:bold;word-break:break-word;">${valueHtml}</td>
+    </tr>`;
+}
+
+/** E-mail envoyé aux administrateurs quand un futur membre demande son formulaire. */
+export function formRequestEmail(data: FormRequestEmailData, adminUrl: string, logoUrl: string) {
+  const email = escapeHtml(data.email);
+  const phone = escapeHtml(data.phone);
+  return layout(
+    'Nouvelle demande de formulaire d’adhésion',
+    `
+      <p>Bonjour,</p>
+      <p>Un futur membre demande l'envoi de son formulaire d'adhésion :</p>
+      <div style="margin:16px 0;padding:14px 16px;background:#F7FAFC;border-left:3px solid ${THEME.accentGold};border-radius:6px;color:#233241;font-style:italic;">
+        ${escapeHtml(data.message)}
+      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 4px;">
+        ${infoRow('Prénom', escapeHtml(data.firstName))}
+        ${infoRow('Nom', escapeHtml(data.lastName))}
+        ${infoRow('Ville', escapeHtml(data.city))}
+        ${infoRow('E-mail', `<a href="mailto:${email}" style="color:${THEME.primary};text-decoration:none;">${email}</a>`)}
+        ${infoRow('Téléphone', `<a href="tel:${phone}" style="color:${THEME.primary};text-decoration:none;">${phone}</a>`)}
+      </table>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${escapeHtml(adminUrl)}" style="background:${THEME.primary};color:#FFFFFF;text-decoration:none;padding:13px 28px;border-radius:8px;font-weight:bold;display:inline-block;border-bottom:3px solid ${THEME.accentGold};">
+          Ouvrir la demande
+        </a>
+      </p>
+      <p style="color:#8AA0AE;font-size:13px;">Vous pouvez aussi répondre directement à cet e-mail : votre réponse sera adressée au membre.</p>
     `,
     logoUrl,
   );

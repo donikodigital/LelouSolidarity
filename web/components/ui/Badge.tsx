@@ -1,3 +1,4 @@
+//web/components/ui/Badge.tsx
 import clsx from 'clsx';
 import { CardStatus, MemberStatus } from '@/lib/types';
 
@@ -11,8 +12,8 @@ const cardStatusStyles: Record<CardStatus, string> = {
 const cardStatusLabels: Record<CardStatus, string> = {
   NONE: 'Pas de carte',
   ACTIVE: 'Active',
-  EXPIRING_SOON: 'A renouveler',
-  EXPIRED: 'Expiree',
+  EXPIRING_SOON: 'À renouveler',
+  EXPIRED: 'Expirée',
 };
 
 const memberStatusStyles: Record<MemberStatus, string> = {
@@ -22,7 +23,7 @@ const memberStatusStyles: Record<MemberStatus, string> = {
 
 const memberStatusLabels: Record<MemberStatus, string> = {
   PENDING: 'En attente',
-  VALIDATED: 'Traite',
+  VALIDATED: 'Traité',
 };
 
 export function CardStatusBadge({ status }: { status: CardStatus }) {

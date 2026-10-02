@@ -42,6 +42,25 @@ model AccessCode {
   @@index([email])
 }
 
+// Demande de formulaire d'adhesion faite par un futur membre depuis la page
+// d'accueil (nom, prenom, ville, e-mail, telephone + message type).
+// L'administrateur la retrouve dans son espace et lui envoie un lien d'acces.
+model FormRequest {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  city      String
+  email     String
+  phone     String
+  message   String
+  handled   Boolean   @default(false)
+  handledAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([handled])
+  @@index([createdAt])
+}
+
 model Member {
   id             String   @id @default(cuid())
 

@@ -1,4 +1,4 @@
-//lelou-solidarity-frontend/lib/types.ts
+//web/lib/types.ts
 export type MemberStatus = 'PENDING' | 'VALIDATED';
 export type CardStatus = 'NONE' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
 
@@ -32,6 +32,20 @@ export interface AccessCodeRecord {
   usedAt: string | null;
   createdAt: string;
   member?: { id: string; firstName: string; lastName: string } | null;
+}
+
+/** Demande de formulaire d'adhésion faite depuis la page d'accueil. */
+export interface FormRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  city: string;
+  email: string;
+  phone: string;
+  message: string;
+  handled: boolean;
+  handledAt: string | null;
+  createdAt: string;
 }
 
 export interface AdminSession {

@@ -1,4 +1,8 @@
 //backend/src/mail/mail.service.ts
+// v1.6 — sendFormRequestNotification() : prévient les administrateurs d'une
+// demande de formulaire (reply-to = adresse du membre).
+// v1.5 — l'e-mail d'accès n'affiche plus le code : il reste uniquement dans le
+// lien du bouton (/formulaire?code=XXXX). Nouvel objet d'e-mail.
 // v1.4 — le logo (<FRONTEND_URL>/logo.png, fichier web/public/logo.png) est
 // transmis aux gabarits pour apparaître dans l'en-tête de chaque e-mail.
 // v1.3 — le lien « Remplir le formulaire » de l'e-mail du code d'accès
@@ -15,6 +19,7 @@ import {
   cardExpiredEmail,
   cardReadyEmail,
   expirationReminderEmail,
+  formRequestEmail,
   resetPasswordEmail,
   submissionReceivedEmail,
 } from './templates';
@@ -37,7 +42,11 @@ export class MailService {
   async sendAccessCode(email: string, code: string) {
     // Le code est ajouté à l'adresse pour que le formulaire se remplisse seul
     const formUrl = `${this.frontendUrl}/formulaire?code=${encodeURIComponent(code)}`;
-    return this.send(email, 'Votre code d’accès LELOU SOLIDARITY', accessCodeEmail(code, formUrl, this.logoUrl));
+    return this.send(
+      email,
+      'Votre accès au formulaire d’adhésion - LELOU SOLIDARITY',
+      accessCodeEmail(formUrl, this.logoUrl),
+    );
   }
 
   async sendPasswordReset(email: string, name: string, token: string) {
@@ -81,15 +90,40 @@ export class MailService {
     );
   }
 
+  /** Prévient les administrateurs qu'un futur membre demande son formulaire. */
+  async sendFormRequestNotification(
+    to: string[],
+    request: {
+      firstName: string;
+      lastName: string;
+      city: string;
+      email: string;
+      phone: string;
+      message: string;
+    },
+  ) {
+    const adminUrl = `${this.frontendUrl}/admin/demandes`;
+    // Pas de saut de ligne dans l'objet (valeurs saisies par un visiteur)
+    const name = `${request.firstName} ${request.lastName}`.replace(/[\r\n]+/g, ' ').trim();
+    return this.send(
+      to,
+      `Nouvelle demande de formulaire - ${name}`,
+      formRequestEmail(request, adminUrl, this.logoUrl),
+      undefined,
+      { replyTo: request.email },
+    );
+  }
+
   async sendCardExpired(email: string, firstName: string) {
     return this.send(email, 'Votre carte a expiré - LELOU SOLIDARITY', cardExpiredEmail(firstName, this.logoUrl));
   }
 
   private async send(
-    to: string,
+    to: string | string[],
     subject: string,
     html: string,
     attachments?: { filename: string; content: string }[],
+    options?: { replyTo?: string },
   ) {
     try {
       const { data, error } = await this.resend.emails.send({
@@ -98,6 +132,7 @@ export class MailService {
         subject,
         html,
         attachments,
+        replyTo: options?.replyTo,
       });
 
       if (error) {
@@ -110,7 +145,7 @@ export class MailService {
 
       return data;
     } catch (err) {
-      this.logger.error(`Échec d'envoi d'e-mail à ${to}: ${(err as Error).message}`);
+      this.logger.error(`Échec d'envoi d'e-mail à ${Array.isArray(to) ? to.join(', ') : to}: ${(err as Error).message}`);
       throw err;
     }
   }

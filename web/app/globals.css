@@ -14,3 +14,56 @@ body {
 ::selection {
   background-color: #BCCFDC;
 }
+
+/* ---------- Animations de l'espace admin ---------- */
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes popDown {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-sheet-up { animation: sheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fadeIn 0.2s ease-out both; }
+.animate-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pop-in { animation: popIn 0.35s ease-out both; }
+.animate-wiggle { animation: wiggle 0.6s ease-in-out 1; transform-origin: top center; }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-5deg); }
+}
+
+/* Sur grand écran, le panneau de notifications descend du bouton au lieu de monter du bas */
+@media (min-width: 640px) {
+  .animate-sheet-up { animation-name: popDown; animation-duration: 0.22s; }
+}
+
+/* Respecte le réglage « réduire les animations » du téléphone */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
