@@ -1,4 +1,11 @@
 //backend/src/cards/cards.service.ts
+// v1.5 — protection contre le manque de mémoire (instance Render de 512 Mo) :
+//  - une seule génération de carte à la fois (file d'attente) : deux Chromium en
+//    parallèle dépassent les 512 Mo ;
+//  - si on clique plusieurs fois sur « Générer » pour le même membre, les clics
+//    suivants rejoignent la génération déjà en cours (pas de carte ni d'e-mail en double) ;
+//  - la RAM utilisée par le conteneur est écrite dans les logs à chaque étape clé
+//    (l'onglet Metrics de Render ne la montre pas sur l'offre gratuite).
 // v1.4 — génération de la carte plus rapide :
 //  - navigateur Chromium réutilisé d'une carte à l'autre (browser.util.ts) ;
 //  - photo réduite à la bonne taille par Cloudinary (au lieu de l'original, qui
@@ -11,8 +18,10 @@
 // v1.2 — page PDF élargie pour accueillir recto + verso empilés, avec marge
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Member } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import { randomUUID } from 'crypto';
+import { readFileSync } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { MailService } from '../mail/mail.service';
@@ -28,10 +37,37 @@ const CARD_VALIDITY_YEARS = 1;
 const PHOTO_TRANSFORM = 'c_fill,g_auto,w_400,h_490,q_auto:good,f_jpg';
 const PHOTO_CHECK_TIMEOUT_MS = 6_000;
 
+/**
+ * Mémoire (en Mo) réellement utilisée par le conteneur : Node + Chromium + Prisma.
+ * C'est cette valeur que Render compare à la limite de 512 Mo. On lit les
+ * compteurs du système ; renvoie null si indisponibles (ex. Windows en local).
+ */
+function containerMemoryMb(): number | null {
+  try {
+    const stat = readFileSync('/sys/fs/cgroup/memory.stat', 'utf8');
+    const match = stat.match(/^anon (\d+)$/m);
+    if (match) return Math.round(Number(match[1]) / 1048576);
+  } catch {
+    /* cgroup v2 absent */
+  }
+  try {
+    const bytes = Number(readFileSync('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf8').trim());
+    if (Number.isFinite(bytes) && bytes > 0) return Math.round(bytes / 1048576);
+  } catch {
+    /* cgroup v1 absent */
+  }
+  return null;
+}
+
 @Injectable()
 export class CardsService {
   private readonly logger = new Logger(CardsService.name);
   private readonly frontendUrl: string;
+
+  // Générations en cours, par membre : un second clic rejoint la première.
+  private readonly inFlight = new Map<string, Promise<Member>>();
+  // Fin de la file d'attente : les générations passent l'une après l'autre.
+  private queueTail: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -42,7 +78,32 @@ export class CardsService {
     this.frontendUrl = resolveFrontendUrl(this.config.get<string>('FRONTEND_URL'));
   }
 
-  async generateCard(memberId: string) {
+  generateCard(memberId: string): Promise<Member> {
+    const running = this.inFlight.get(memberId);
+    if (running) {
+      this.logger.warn(`Génération déjà en cours pour le membre ${memberId} : demande regroupée.`);
+      return running;
+    }
+
+    const job = this.enqueue(() => this.runGeneration(memberId)).finally(() => {
+      this.inFlight.delete(memberId);
+    });
+    this.inFlight.set(memberId, job);
+    return job;
+  }
+
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.queueTail.then(() => task());
+    this.queueTail = run.catch(() => undefined);
+    return run;
+  }
+
+  private logMemory(label: string): void {
+    const mb = containerMemoryMb();
+    if (mb !== null) this.logger.log(`RAM conteneur (${label}) : ${mb} Mo / 512 Mo`);
+  }
+
+  private async runGeneration(memberId: string): Promise<Member> {
     // Chronomètre : une ligne de log récapitule la durée de chaque étape
     const startedAt = Date.now();
     const timings: string[] = [];
@@ -52,6 +113,8 @@ export class CardsService {
       timings.push(`${label} ${now - lapStart} ms`);
       lapStart = now;
     };
+
+    this.logMemory('début');
 
     const member = await this.prisma.member.findUnique({ where: { id: memberId } });
     if (!member) {
@@ -144,6 +207,7 @@ export class CardsService {
       `Carte ${action} pour ${updated.email} (${memberCode}) en ${Date.now() - startedAt} ms ` +
         `[${timings.join(', ')}] · PDF ${(pdfBuffer.length / 1024).toFixed(0)} Ko`,
     );
+    this.logMemory('fin');
 
     return updated;
   }
@@ -180,6 +244,7 @@ export class CardsService {
   private async renderPdf(html: string, lap: (label: string) => void): Promise<Buffer> {
     const browser = await getBrowser();
     lap('navigateur');
+    this.logMemory('Chromium lancé');
     try {
       const page = await browser.newPage();
       try {
@@ -187,6 +252,7 @@ export class CardsService {
         // 500 ms de silence réseau de « networkidle0 ».
         await page.setContent(html, { waitUntil: 'load', timeout: 30_000 });
         lap('chargement');
+        this.logMemory('page chargée');
         const pdf = await page.pdf({
           width: `${PAGE_WIDTH_MM}mm`,
           height: `${PAGE_HEIGHT_MM}mm`,
@@ -194,6 +260,7 @@ export class CardsService {
           margin: { top: 0, bottom: 0, left: 0, right: 0 },
         });
         lap('pdf');
+        this.logMemory('PDF généré');
         return Buffer.from(pdf);
       } finally {
         await page.close().catch(() => undefined);
