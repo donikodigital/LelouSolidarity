@@ -1,7 +1,14 @@
 //backend/src/cards/cards.service.ts
-// v1.3 — l'URL de verification du QR code utilise resolveFrontendUrl()
-// (meme source que les e-mails : une seule adresse, sans "/" final).
-// v1.2 — page PDF elargie pour accueillir recto + verso empiles, avec marge
+// v1.4 — génération de la carte plus rapide :
+//  - navigateur Chromium réutilisé d'une carte à l'autre (browser.util.ts) ;
+//  - photo réduite à la bonne taille par Cloudinary (au lieu de l'original, qui
+//    peut peser plusieurs Mo et alourdissait le PDF, l'envoi et l'e-mail) ;
+//  - chargement « load » au lieu de « networkidle0 » (pas d'attente inutile) ;
+//  - e-mail « carte prête » envoyé en arrière-plan : la réponse n'attend plus Resend ;
+//  - durée de chaque étape écrite dans les logs (visible dans les logs Render).
+// v1.3 — l'URL de vérification du QR code utilise resolveFrontendUrl()
+// (même source que les e-mails : une seule adresse, sans "/" final).
+// v1.2 — page PDF élargie pour accueillir recto + verso empilés, avec marge
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as QRCode from 'qrcode';
@@ -10,11 +17,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { MailService } from '../mail/mail.service';
 import { resolveFrontendUrl } from '../common/frontend-url';
-import { launchBrowser } from './browser.util';
+import { getBrowser, releaseBrowser } from './browser.util';
 import { PAGE_HEIGHT_MM, PAGE_WIDTH_MM } from './theme';
 import { renderMemberCardHtml } from './card-template';
 
 const CARD_VALIDITY_YEARS = 1;
+
+// Cadre photo de la carte : 20 x 24,5 mm. 400 x 490 px suffisent largement à
+// l'impression (≈ 500 dpi) et pèsent quelques dizaines de Ko.
+const PHOTO_TRANSFORM = 'c_fill,g_auto,w_400,h_490,q_auto:good,f_jpg';
+const PHOTO_CHECK_TIMEOUT_MS = 6_000;
 
 @Injectable()
 export class CardsService {
@@ -31,6 +43,16 @@ export class CardsService {
   }
 
   async generateCard(memberId: string) {
+    // Chronomètre : une ligne de log récapitule la durée de chaque étape
+    const startedAt = Date.now();
+    const timings: string[] = [];
+    let lapStart = startedAt;
+    const lap = (label: string) => {
+      const now = Date.now();
+      timings.push(`${label} ${now - lapStart} ms`);
+      lapStart = now;
+    };
+
     const member = await this.prisma.member.findUnique({ where: { id: memberId } });
     if (!member) {
       throw new NotFoundException('Membre introuvable.');
@@ -46,9 +68,14 @@ export class CardsService {
     const cardExpiresAt = shouldResetValidity
       ? addYears(cardIssuedAt, CARD_VALIDITY_YEARS)
       : member.cardExpiresAt ?? addYears(cardIssuedAt, CARD_VALIDITY_YEARS);
+    lap('base');
 
     const verifyUrl = `${this.frontendUrl}/verify/${verifyToken}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, scale: 8 });
+    lap('qr');
+
+    const photoUrl = await this.resolvePhotoUrl(member.photoUrl);
+    lap('photo');
 
     const html = renderMemberCardHtml({
       firstName: member.firstName,
@@ -60,18 +87,18 @@ export class CardsService {
       memberCode,
       issuedAt: cardIssuedAt,
       expiresAt: cardExpiresAt,
-      photoUrl: member.photoUrl,
+      photoUrl,
       qrDataUrl,
       status: 'ACTIVE',
     });
 
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await this.renderPdf(html);
+      pdfBuffer = await this.renderPdf(html, lap);
     } catch (err) {
-      this.logger.error(`Echec du rendu PDF pour ${member.email}: ${(err as Error).message}`);
+      this.logger.error(`Échec du rendu PDF pour ${member.email}: ${(err as Error).message}`);
       throw new BadRequestException(
-        "La generation du PDF a echoue. Verifie la configuration du navigateur headless (Chromium).",
+        'La génération du PDF a échoué. Vérifie la configuration du navigateur headless (Chromium).',
       );
     }
 
@@ -79,11 +106,12 @@ export class CardsService {
     try {
       upload = await this.uploads.uploadCardPdf(pdfBuffer, memberCode);
     } catch (err) {
-      this.logger.error(`Echec de l'upload Cloudinary pour ${member.email}: ${(err as Error).message}`);
+      this.logger.error(`Échec de l'upload Cloudinary pour ${member.email}: ${(err as Error).message}`);
       throw new BadRequestException(
-        "Le PDF n'a pas pu etre enregistre sur Cloudinary. Verifie les identifiants et les autorisations du compte.",
+        'Le PDF n’a pas pu être enregistré sur Cloudinary. Vérifie les identifiants et les autorisations du compte.',
       );
     }
+    lap('upload');
 
     const updated = await this.prisma.member.update({
       where: { id: member.id },
@@ -99,41 +127,79 @@ export class CardsService {
         expiredNotifiedAt: null,
       },
     });
+    lap('base');
 
-    try {
-      await this.mail.sendCardReady(
-        updated.email,
-        updated.firstName,
-        memberCode,
-        cardExpiresAt,
-        pdfBuffer,
+    // L'e-mail part en arrière-plan : la carte est déjà enregistrée, l'administrateur
+    // n'a pas à attendre Resend. En cas d'échec, l'erreur est écrite dans les logs.
+    void this.mail
+      .sendCardReady(updated.email, updated.firstName, memberCode, cardExpiresAt, pdfBuffer)
+      .catch((err) =>
+        this.logger.error(
+          `Échec de l'e-mail "carte prête" pour ${updated.email}: ${(err as Error).message}`,
+        ),
       );
-    } catch (err) {
-      this.logger.error(
-        `Echec de l'e-mail "carte prete" pour ${updated.email}: ${(err as Error).message}`,
-      );
-    }
 
-    const action = isFirstGeneration ? 'generee' : isRenewal ? 'renouvelee' : 'reimprimee';
-    this.logger.log(`Carte ${action} pour ${updated.email} (${memberCode})`);
+    const action = isFirstGeneration ? 'générée' : isRenewal ? 'renouvelée' : 'réimprimée';
+    this.logger.log(
+      `Carte ${action} pour ${updated.email} (${memberCode}) en ${Date.now() - startedAt} ms ` +
+        `[${timings.join(', ')}] · PDF ${(pdfBuffer.length / 1024).toFixed(0)} Ko`,
+    );
 
     return updated;
   }
 
-  private async renderPdf(html: string): Promise<Buffer> {
-    const browser = await launchBrowser();
+  /**
+   * Demande à Cloudinary une version réduite et recadrée de la photo. Si cette
+   * version est indisponible (transformations restreintes, réseau...), on
+   * retombe sur l'original : la carte est générée dans tous les cas.
+   */
+  private async resolvePhotoUrl(original: string): Promise<string> {
+    const marker = '/image/upload/';
+    const index = original.indexOf(marker);
+    if (!original.includes('res.cloudinary.com') || index === -1) return original;
+
+    const optimized = `${original.slice(0, index + marker.length)}${PHOTO_TRANSFORM}/${original.slice(
+      index + marker.length,
+    )}`;
+
+    try {
+      // Au passage, cette requête fait préparer l'image par Cloudinary : le
+      // navigateur la reçoit ensuite immédiatement.
+      const res = await fetch(optimized, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(PHOTO_CHECK_TIMEOUT_MS),
+      });
+      if (res.ok) return optimized;
+      this.logger.warn(`Photo réduite indisponible (HTTP ${res.status}) : photo d'origine utilisée.`);
+    } catch (err) {
+      this.logger.warn(`Photo réduite non vérifiable (${(err as Error).message}) : photo d'origine utilisée.`);
+    }
+    return original;
+  }
+
+  private async renderPdf(html: string, lap: (label: string) => void): Promise<Buffer> {
+    const browser = await getBrowser();
+    lap('navigateur');
     try {
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      const pdf = await page.pdf({
-        width: `${PAGE_WIDTH_MM}mm`,
-        height: `${PAGE_HEIGHT_MM}mm`,
-        printBackground: true,
-        margin: { top: 0, bottom: 0, left: 0, right: 0 },
-      });
-      return Buffer.from(pdf);
+      try {
+        // « load » attend le chargement des images (photo, logo, QR) sans les
+        // 500 ms de silence réseau de « networkidle0 ».
+        await page.setContent(html, { waitUntil: 'load', timeout: 30_000 });
+        lap('chargement');
+        const pdf = await page.pdf({
+          width: `${PAGE_WIDTH_MM}mm`,
+          height: `${PAGE_HEIGHT_MM}mm`,
+          printBackground: true,
+          margin: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+        lap('pdf');
+        return Buffer.from(pdf);
+      } finally {
+        await page.close().catch(() => undefined);
+      }
     } finally {
-      await browser.close();
+      releaseBrowser();
     }
   }
 
