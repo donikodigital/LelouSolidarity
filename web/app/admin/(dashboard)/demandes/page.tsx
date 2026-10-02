@@ -161,6 +161,10 @@ function RequestCard({
             Envoyer un lien d&apos;accès au formulaire à{' '}
             <span className="font-bold">{request.email}</span> ?
           </p>
+          <p className="text-xs text-ocean-500">
+            Le formulaire s&apos;ouvrira avec le nom, le prénom, la ville, le téléphone et l&apos;e-mail
+            de cette demande déjà remplis et verrouillés.
+          </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => setMode('view')}>
               Annuler

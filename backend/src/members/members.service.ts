@@ -1,4 +1,7 @@
 //backend/src/members/members.service.ts
+// v1.6 — lien issu d'une demande de formulaire : checkAccessCode() renvoie les
+// informations de la demande (prefill) et submit() les impose (nom, prénom, ville,
+// téléphone, e-mail) quoi que le navigateur envoie : ces champs sont verrouillés.
 // v1.5 — checkAccessCode() : état d'un lien (valide / déjà utilisé / invalide),
 // utilisé par le formulaire public pour refuser l'ouverture d'un lien déjà
 // consommé. submit() consomme désormais le code de façon atomique (deux envois
@@ -32,6 +35,20 @@ const MAX_CODE_LENGTH = 32;
 
 export type AccessCodeState = 'VALID' | 'USED' | 'INVALID';
 
+/** Informations reprises de la demande de formulaire (champs verrouillés dans le formulaire). */
+export interface AccessCodePrefill {
+  firstName: string;
+  lastName: string;
+  city: string;
+  phone: string;
+  email: string;
+}
+
+export interface AccessCodeStatusResult {
+  status: AccessCodeState;
+  prefill?: AccessCodePrefill;
+}
+
 // Champs texte modifiables tels quels (trim uniquement).
 // birthDate et email ont un traitement propre dans update().
 const UPDATABLE_TEXT_FIELDS = [
@@ -60,9 +77,11 @@ export class MembersService {
    * - VALID   : le code existe et n'a pas encore été utilisé
    * - USED    : une demande a déjà été envoyée avec ce code
    * - INVALID : code inconnu (ou supprimé)
-   * Ne renvoie aucune autre information (pas d'e-mail, pas de membre).
+   * Si le code a été envoyé en réponse à une demande de formulaire, un lien VALID
+   * renvoie aussi `prefill` : nom, prénom, ville, téléphone et e-mail de la demande.
+   * Rien d'autre n'est renvoyé (pas de membre, pas d'identifiant).
    */
-  async checkAccessCode(rawCode: string): Promise<{ status: AccessCodeState }> {
+  async checkAccessCode(rawCode: string): Promise<AccessCodeStatusResult> {
     const code = (rawCode ?? '').toUpperCase().trim();
     if (!code || code.length > MAX_CODE_LENGTH) {
       return { status: 'INVALID' };
@@ -70,11 +89,19 @@ export class MembersService {
 
     const accessCode = await this.prisma.accessCode.findUnique({
       where: { code },
-      select: { used: true },
+      select: {
+        used: true,
+        formRequest: {
+          select: { firstName: true, lastName: true, city: true, phone: true, email: true },
+        },
+      },
     });
 
     if (!accessCode) return { status: 'INVALID' };
-    return { status: accessCode.used ? 'USED' : 'VALID' };
+    if (accessCode.used) return { status: 'USED' };
+    return accessCode.formRequest
+      ? { status: 'VALID', prefill: accessCode.formRequest }
+      : { status: 'VALID' };
   }
 
   async submit(dto: SubmitMemberDto, photo?: Express.Multer.File) {
@@ -90,6 +117,7 @@ export class MembersService {
 
     const accessCode = await this.prisma.accessCode.findUnique({
       where: { code: dto.code.toUpperCase().trim() },
+      include: { formRequest: true },
     });
 
     if (!accessCode) {
@@ -99,12 +127,24 @@ export class MembersService {
       throw new BadRequestException('Ce lien a déjà été utilisé : le formulaire ne peut plus être rempli.');
     }
 
+    // Lien issu d'une demande de formulaire : les informations de la demande font
+    // foi. Ces champs sont verrouillés dans le formulaire, mais on ne se fie pas
+    // au navigateur : on impose les valeurs enregistrées côté serveur.
+    const fixed = accessCode.formRequest;
+    const identity = {
+      firstName: (fixed?.firstName ?? dto.firstName).trim(),
+      lastName: (fixed?.lastName ?? dto.lastName).trim(),
+      city: (fixed?.city ?? dto.city).trim(),
+      phone: (fixed?.phone ?? dto.phone).trim(),
+      email: (fixed?.email ?? dto.email).toLowerCase().trim(),
+    };
+
     let upload: { secure_url: string; public_id: string };
     try {
-      upload = await this.uploads.uploadMemberPhoto(photo.buffer, dto.email);
+      upload = await this.uploads.uploadMemberPhoto(photo.buffer, identity.email);
     } catch (err) {
       this.logger.error(
-        `Échec de l'upload Cloudinary pour ${dto.email}: ${(err as Error).message}`,
+        `Échec de l'upload Cloudinary pour ${identity.email}: ${(err as Error).message}`,
       );
       throw new BadRequestException(
         'La photo n’a pas pu être enregistrée, merci de réessayer avec une autre photo (JPG ou PNG).',
@@ -129,16 +169,16 @@ export class MembersService {
         return tx.member.create({
           data: {
             accessCodeId: accessCode.id,
-            firstName: dto.firstName.trim(),
-            lastName: dto.lastName.trim(),
+            firstName: identity.firstName,
+            lastName: identity.lastName,
             birthDate: new Date(dto.birthDate),
             originDistrict: dto.originDistrict.trim(),
             addressLine: dto.addressLine.trim(),
-            city: dto.city.trim(),
+            city: identity.city,
             state: dto.state.trim(),
             zipCode: dto.zipCode.trim(),
-            phone: dto.phone.trim(),
-            email: dto.email.toLowerCase().trim(),
+            phone: identity.phone,
+            email: identity.email,
             photoUrl: upload.secure_url,
             photoPublicId: upload.public_id,
           },
@@ -152,7 +192,7 @@ export class MembersService {
       if (err instanceof BadRequestException) throw err;
 
       this.logger.error(
-        `Échec de l'enregistrement de la demande pour ${dto.email}: ${(err as Error).message}`,
+        `Échec de l'enregistrement de la demande pour ${identity.email}: ${(err as Error).message}`,
       );
       throw new BadRequestException(
         'Votre demande n’a pas pu être enregistrée. Votre lien reste valable : merci de réessayer dans quelques instants.',

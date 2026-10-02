@@ -76,10 +76,37 @@ function readCodeFromUrl(raw: string | null): string {
 type AccessState = 'checking' | 'valid' | 'used' | 'invalid' | 'missing' | 'error';
 type RemoteStatus = 'VALID' | 'USED' | 'INVALID';
 
-// Demande au serveur si le lien est encore utilisable
-async function fetchAccessStatus(code: string): Promise<RemoteStatus> {
+// Informations reprises de la demande de formulaire : affichées grisées, non modifiables
+interface Prefill {
+  firstName: string;
+  lastName: string;
+  city: string;
+  phone: string;
+  email: string;
+}
+
+interface AccessStatusResult {
+  status: RemoteStatus;
+  prefill: Prefill | null;
+}
+
+// Demande au serveur si le lien est encore utilisable (et s'il impose des informations)
+async function fetchAccessStatus(code: string): Promise<AccessStatusResult> {
   const res = await apiPublic(`/public/access-codes/${encodeURIComponent(code)}/status`);
-  return res?.status === 'VALID' || res?.status === 'USED' ? res.status : 'INVALID';
+  const status: RemoteStatus =
+    res?.status === 'VALID' || res?.status === 'USED' ? res.status : 'INVALID';
+  const p = res?.prefill;
+  const prefill: Prefill | null =
+    status === 'VALID' && p && typeof p.firstName === 'string'
+      ? {
+          firstName: p.firstName,
+          lastName: p.lastName,
+          city: p.city,
+          phone: p.phone,
+          email: p.email,
+        }
+      : null;
+  return { status, prefill };
 }
 
 function SectionTitle({
@@ -154,6 +181,8 @@ export function MemberForm() {
   const code = readCodeFromUrl(searchParams.get('code'));
 
   const [access, setAccess] = useState<AccessState>(code ? 'checking' : 'missing');
+  // Non nul quand le lien vient d'une demande de formulaire : ces champs sont verrouillés
+  const [prefill, setPrefill] = useState<Prefill | null>(null);
   const [slowCheck, setSlowCheck] = useState(false);
   const [checkAttempt, setCheckAttempt] = useState(0);
 
@@ -179,8 +208,13 @@ export function MemberForm() {
     const slowTimer = setTimeout(() => setSlowCheck(true), SLOW_CHECK_MS);
 
     fetchAccessStatus(code)
-      .then((status) => {
+      .then(({ status, prefill: fixed }) => {
         if (cancelled) return;
+        if (fixed) {
+          // Les informations de la demande remplacent toute saisie et sont verrouillées
+          setForm((prev) => ({ ...prev, ...fixed }));
+        }
+        setPrefill(fixed);
         setAccess(status === 'VALID' ? 'valid' : status === 'USED' ? 'used' : 'invalid');
       })
       .catch(() => {
@@ -234,9 +268,9 @@ export function MemberForm() {
       const body = new FormData();
       const { birthYear, ...rest } = form;
       // Le code vient toujours du lien, jamais d'un champ modifiable
-      Object.entries(rest).forEach(([key, value]) =>
-        body.append(key, key === 'code' ? code : value),
-      );
+      const values: Record<string, string> = { ...rest, code };
+      if (prefill) Object.assign(values, prefill); // le serveur les impose aussi
+      Object.entries(values).forEach(([key, value]) => body.append(key, value));
       // Le backend attend toujours "birthDate" : on envoie l'année au 1er janvier
       body.append('birthDate', `${birthYear}-01-01`);
       body.append('photo', photo);
@@ -250,7 +284,7 @@ export function MemberForm() {
         // onglet, double envoi...), on bascule sur l'écran « lien déjà utilisé ».
         // Les données saisies sont conservées dans tous les autres cas.
         try {
-          const status = await fetchAccessStatus(code);
+          const { status } = await fetchAccessStatus(code);
           if (status === 'USED') setAccess('used');
           else if (status === 'INVALID') setAccess('invalid');
         } catch {
@@ -410,6 +444,16 @@ export function MemberForm() {
           </p>
         </section>
 
+        {prefill && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-ocean-100 bg-ocean-50/70 px-4 py-3 text-xs leading-relaxed text-ocean-600">
+            <Lock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              Les champs grisés (nom, prénom, ville, téléphone et e-mail) reprennent les
+              informations de votre demande. Complétez simplement les autres champs.
+            </span>
+          </div>
+        )}
+
         {/* Informations personnelles */}
         <section className="flex flex-col gap-4">
           <SectionTitle icon={User}>Informations personnelles</SectionTitle>
@@ -419,6 +463,8 @@ export function MemberForm() {
               name="firstName"
               autoComplete="given-name"
               required
+              disabled={!!prefill}
+              readOnly={!!prefill}
               value={form.firstName}
               onChange={(e) => update('firstName', e.target.value)}
             />
@@ -427,6 +473,8 @@ export function MemberForm() {
               name="lastName"
               autoComplete="family-name"
               required
+              disabled={!!prefill}
+              readOnly={!!prefill}
               value={form.lastName}
               onChange={(e) => update('lastName', e.target.value)}
             />
@@ -484,6 +532,8 @@ export function MemberForm() {
               name="city"
               autoComplete="address-level2"
               required
+              disabled={!!prefill}
+              readOnly={!!prefill}
               value={form.city}
               onChange={(e) => update('city', e.target.value)}
             />
@@ -509,6 +559,8 @@ export function MemberForm() {
               type="tel"
               autoComplete="tel"
               required
+              disabled={!!prefill}
+              readOnly={!!prefill}
               value={form.phone}
               onChange={(e) => update('phone', e.target.value)}
             />
@@ -518,6 +570,8 @@ export function MemberForm() {
               type="email"
               autoComplete="email"
               required
+              disabled={!!prefill}
+              readOnly={!!prefill}
               value={form.email}
               onChange={(e) => update('email', e.target.value)}
             />

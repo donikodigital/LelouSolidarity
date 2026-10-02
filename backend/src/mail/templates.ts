@@ -175,7 +175,7 @@ export function formRequestEmail(data: FormRequestEmailData, adminUrl: string, l
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 4px;">
         ${infoRow('Prénom', escapeHtml(data.firstName))}
         ${infoRow('Nom', escapeHtml(data.lastName))}
-        ${infoRow('Ville', escapeHtml(data.city))}
+        ${infoRow('Ville de résidence', escapeHtml(data.city))}
         ${infoRow('E-mail', `<a href="mailto:${email}" style="color:${THEME.primary};text-decoration:none;">${email}</a>`)}
         ${infoRow('Téléphone', `<a href="tel:${phone}" style="color:${THEME.primary};text-decoration:none;">${phone}</a>`)}
       </table>

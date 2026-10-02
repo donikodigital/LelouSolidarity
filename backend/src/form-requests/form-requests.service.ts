@@ -75,15 +75,31 @@ export class FormRequestsService {
   /**
    * Envoie au membre un lien d'accès au formulaire (même mécanisme que
    * « Envoyer un nouveau code ») puis marque la demande comme traitée.
+   * Le code créé est rattaché à la demande : à l'ouverture du lien, le formulaire
+   * reprend et verrouille nom, prénom, ville, téléphone et e-mail de la demande.
    * Si l'envoi échoue, l'erreur remonte et la demande reste « à traiter ».
    */
   async sendForm(id: string) {
     const request = await this.findOneOrThrow(id);
-    await this.accessCodes.generateAndSend(request.email);
-    return this.prisma.formRequest.update({
+    const previousCodeId = request.accessCodeId;
+
+    const sent = await this.accessCodes.generateAndSend(request.email);
+
+    const updated = await this.prisma.formRequest.update({
       where: { id },
-      data: { handled: true, handledAt: new Date() },
+      data: { handled: true, handledAt: new Date(), accessCodeId: sent.id },
     });
+
+    // Renvoi : l'ancien lien non utilisé est supprimé, pour qu'un seul lien reste valable.
+    if (previousCodeId && previousCodeId !== sent.id) {
+      await this.prisma.accessCode
+        .deleteMany({ where: { id: previousCodeId, used: false } })
+        .catch((err) =>
+          this.logger.warn(`Ancien code non supprimé (${previousCodeId}): ${(err as Error).message}`),
+        );
+    }
+
+    return updated;
   }
 
   /** Marque la demande comme traitée sans rien envoyer (ex. traitée par téléphone). */

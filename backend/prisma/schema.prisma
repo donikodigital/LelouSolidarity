@@ -39,6 +39,10 @@ model AccessCode {
   createdAt DateTime  @default(now())
   member    Member?
 
+  // Demande de formulaire à l'origine de ce code (s'il en vient) : ses
+  // informations préremplissent et verrouillent le formulaire d'adhésion.
+  formRequest FormRequest?
+
   @@index([email])
 }
 
@@ -56,6 +60,10 @@ model FormRequest {
   handled   Boolean   @default(false)
   handledAt DateTime?
   createdAt DateTime  @default(now())
+
+  // Code d'accès envoyé en réponse à cette demande (le lien contient ce code)
+  accessCodeId String?     @unique
+  accessCode   AccessCode? @relation(fields: [accessCodeId], references: [id], onDelete: SetNull)
 
   @@index([handled])
   @@index([createdAt])

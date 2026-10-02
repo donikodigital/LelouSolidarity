@@ -152,7 +152,7 @@ export function RequestFormButton() {
             </div>
             <div className={ROW}>
               <Input
-                label="Ville"
+                label="Ville de résidence"
                 name="city"
                 autoComplete="address-level2"
                 required
