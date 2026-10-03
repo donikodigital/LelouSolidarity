@@ -1,21 +1,16 @@
 //backend/src/cards/cards.service.ts
-// v1.5 — protection contre le manque de mémoire (instance Render de 512 Mo) :
-//  - une seule génération de carte à la fois (file d'attente) : deux Chromium en
-//    parallèle dépassent les 512 Mo ;
-//  - si on clique plusieurs fois sur « Générer » pour le même membre, les clics
-//    suivants rejoignent la génération déjà en cours (pas de carte ni d'e-mail en double) ;
-//  - la RAM utilisée par le conteneur est écrite dans les logs à chaque étape clé
-//    (l'onglet Metrics de Render ne la montre pas sur l'offre gratuite).
-// v1.4 — génération de la carte plus rapide :
-//  - navigateur Chromium réutilisé d'une carte à l'autre (browser.util.ts) ;
-//  - photo réduite à la bonne taille par Cloudinary (au lieu de l'original, qui
-//    peut peser plusieurs Mo et alourdissait le PDF, l'envoi et l'e-mail) ;
-//  - chargement « load » au lieu de « networkidle0 » (pas d'attente inutile) ;
-//  - e-mail « carte prête » envoyé en arrière-plan : la réponse n'attend plus Resend ;
-//  - durée de chaque étape écrite dans les logs (visible dans les logs Render).
+// v2.0 — fin de Chromium : le PDF est dessiné avec pdfkit (card-pdf.ts).
+//  - plus de navigateur à lancer : la génération passe d'environ 50 s à moins
+//    d'une seconde et ne risque plus de dépasser les 512 Mo de Render ;
+//  - la photo (déjà réduite par Cloudinary) est téléchargée par le serveur et
+//    intégrée directement au PDF ; le QR code est généré en image PNG ;
+//  - une seule génération à la fois, et les clics multiples sur « Générer »
+//    pour un même membre sont regroupés (pas de carte ni d'e-mail en double) ;
+//  - la RAM du conteneur reste écrite dans les logs (début / fin de génération).
+// v1.4 — e-mail « carte prête » envoyé en arrière-plan, durée de chaque étape
+// écrite dans les logs.
 // v1.3 — l'URL de vérification du QR code utilise resolveFrontendUrl()
 // (même source que les e-mails : une seule adresse, sans "/" final).
-// v1.2 — page PDF élargie pour accueillir recto + verso empilés, avec marge
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Member } from '@prisma/client';
@@ -26,21 +21,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { MailService } from '../mail/mail.service';
 import { resolveFrontendUrl } from '../common/frontend-url';
-import { getBrowser, releaseBrowser } from './browser.util';
-import { PAGE_HEIGHT_MM, PAGE_WIDTH_MM } from './theme';
-import { renderMemberCardHtml } from './card-template';
+import { renderMemberCardPdf } from './card-pdf';
 
 const CARD_VALIDITY_YEARS = 1;
 
 // Cadre photo de la carte : 20 x 24,5 mm. 400 x 490 px suffisent largement à
 // l'impression (≈ 500 dpi) et pèsent quelques dizaines de Ko.
 const PHOTO_TRANSFORM = 'c_fill,g_auto,w_400,h_490,q_auto:good,f_jpg';
-const PHOTO_CHECK_TIMEOUT_MS = 6_000;
+const PHOTO_FETCH_TIMEOUT_MS = 10_000;
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
 /**
- * Mémoire (en Mo) réellement utilisée par le conteneur : Node + Chromium + Prisma.
- * C'est cette valeur que Render compare à la limite de 512 Mo. On lit les
- * compteurs du système ; renvoie null si indisponibles (ex. Windows en local).
+ * Mémoire (en Mo) réellement utilisée par le conteneur. Renvoie null si les
+ * compteurs du système sont indisponibles (ex. Windows en local).
  */
 function containerMemoryMb(): number | null {
   try {
@@ -134,36 +127,33 @@ export class CardsService {
     lap('base');
 
     const verifyUrl = `${this.frontendUrl}/verify/${verifyToken}`;
-    const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, scale: 8 });
+    const qrPng = await QRCode.toBuffer(verifyUrl, { margin: 1, scale: 8 });
     lap('qr');
 
-    const photoUrl = await this.resolvePhotoUrl(member.photoUrl);
+    const photo = await this.fetchPhoto(member.photoUrl);
     lap('photo');
-
-    const html = renderMemberCardHtml({
-      firstName: member.firstName,
-      lastName: member.lastName,
-      birthYear: member.birthDate.getFullYear(),
-      originDistrict: member.originDistrict,
-      city: member.city,
-      state: member.state,
-      memberCode,
-      issuedAt: cardIssuedAt,
-      expiresAt: cardExpiresAt,
-      photoUrl,
-      qrDataUrl,
-      status: 'ACTIVE',
-    });
 
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await this.renderPdf(html, lap);
+      pdfBuffer = await renderMemberCardPdf({
+        firstName: member.firstName,
+        lastName: member.lastName,
+        birthYear: member.birthDate.getFullYear(),
+        originDistrict: member.originDistrict,
+        city: member.city,
+        state: member.state,
+        memberCode,
+        issuedAt: cardIssuedAt,
+        expiresAt: cardExpiresAt,
+        photo,
+        qrPng,
+        status: 'ACTIVE',
+      });
     } catch (err) {
       this.logger.error(`Échec du rendu PDF pour ${member.email}: ${(err as Error).message}`);
-      throw new BadRequestException(
-        'La génération du PDF a échoué. Vérifie la configuration du navigateur headless (Chromium).',
-      );
+      throw new BadRequestException('La génération du PDF de la carte a échoué.');
     }
+    lap('pdf');
 
     let upload: { secure_url: string; public_id: string };
     try {
@@ -213,61 +203,44 @@ export class CardsService {
   }
 
   /**
-   * Demande à Cloudinary une version réduite et recadrée de la photo. Si cette
-   * version est indisponible (transformations restreintes, réseau...), on
-   * retombe sur l'original : la carte est générée dans tous les cas.
+   * Télécharge la photo du membre : d'abord la version réduite et recadrée par
+   * Cloudinary, puis, si elle est indisponible, l'original. Renvoie null si
+   * aucune photo n'est exploitable : la carte est générée dans tous les cas
+   * (un pictogramme remplace alors la photo).
    */
-  private async resolvePhotoUrl(original: string): Promise<string> {
-    const marker = '/image/upload/';
-    const index = original.indexOf(marker);
-    if (!original.includes('res.cloudinary.com') || index === -1) return original;
+  private async fetchPhoto(original: string | null | undefined): Promise<Buffer | null> {
+    if (!original || !original.trim()) return null;
 
-    const optimized = `${original.slice(0, index + marker.length)}${PHOTO_TRANSFORM}/${original.slice(
-      index + marker.length,
-    )}`;
+    const candidates = [this.optimizedPhotoUrl(original), original].filter(
+      (url, index, all): url is string => !!url && all.indexOf(url) === index,
+    );
 
-    try {
-      // Au passage, cette requête fait préparer l'image par Cloudinary : le
-      // navigateur la reçoit ensuite immédiatement.
-      const res = await fetch(optimized, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(PHOTO_CHECK_TIMEOUT_MS),
-      });
-      if (res.ok) return optimized;
-      this.logger.warn(`Photo réduite indisponible (HTTP ${res.status}) : photo d'origine utilisée.`);
-    } catch (err) {
-      this.logger.warn(`Photo réduite non vérifiable (${(err as Error).message}) : photo d'origine utilisée.`);
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(PHOTO_FETCH_TIMEOUT_MS) });
+        if (!res.ok) {
+          this.logger.warn(`Photo indisponible (HTTP ${res.status}) : ${url === original ? 'original' : 'version réduite'}.`);
+          continue;
+        }
+        const buffer = Buffer.from(await res.arrayBuffer());
+        if (buffer.length > MAX_PHOTO_BYTES) {
+          this.logger.warn(`Photo trop lourde (${(buffer.length / 1048576).toFixed(1)} Mo) : ignorée.`);
+          continue;
+        }
+        return buffer;
+      } catch (err) {
+        this.logger.warn(`Photo non téléchargeable (${(err as Error).message}).`);
+      }
     }
-    return original;
+    return null;
   }
 
-  private async renderPdf(html: string, lap: (label: string) => void): Promise<Buffer> {
-    const browser = await getBrowser();
-    lap('navigateur');
-    this.logMemory('Chromium lancé');
-    try {
-      const page = await browser.newPage();
-      try {
-        // « load » attend le chargement des images (photo, logo, QR) sans les
-        // 500 ms de silence réseau de « networkidle0 ».
-        await page.setContent(html, { waitUntil: 'load', timeout: 30_000 });
-        lap('chargement');
-        this.logMemory('page chargée');
-        const pdf = await page.pdf({
-          width: `${PAGE_WIDTH_MM}mm`,
-          height: `${PAGE_HEIGHT_MM}mm`,
-          printBackground: true,
-          margin: { top: 0, bottom: 0, left: 0, right: 0 },
-        });
-        lap('pdf');
-        this.logMemory('PDF généré');
-        return Buffer.from(pdf);
-      } finally {
-        await page.close().catch(() => undefined);
-      }
-    } finally {
-      releaseBrowser();
-    }
+  /** Adresse Cloudinary de la version réduite (400 x 490 px, JPEG) ; null si l'URL n'est pas Cloudinary. */
+  private optimizedPhotoUrl(original: string): string | null {
+    const marker = '/image/upload/';
+    const index = original.indexOf(marker);
+    if (!original.includes('res.cloudinary.com') || index === -1) return null;
+    return `${original.slice(0, index + marker.length)}${PHOTO_TRANSFORM}/${original.slice(index + marker.length)}`;
   }
 
   private async nextMemberCode(): Promise<string> {
