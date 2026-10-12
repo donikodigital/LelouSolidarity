@@ -4,14 +4,20 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || 'contact.lelousolidarity@gmail.com';
-  const password = process.env.ADMIN_PASSWORD || 'Lcd123456!';
+  // Aucune valeur par défaut : l'e-mail et le mot de passe de l'administrateur
+  // initial doivent venir de l'environnement (.env en local, variables Render),
+  // jamais du code source (le dépôt est public).
+  const email = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+  const password = process.env.ADMIN_PASSWORD;
   const name = process.env.ADMIN_NAME || 'Administrateur';
 
   if (!email || !password) {
     throw new Error(
       'ADMIN_EMAIL et ADMIN_PASSWORD doivent etre definis dans .env avant de lancer le seed.',
     );
+  }
+  if (password.length < 12) {
+    throw new Error('ADMIN_PASSWORD doit contenir au moins 12 caracteres.');
   }
 
   const existing = await prisma.admin.findUnique({ where: { email } });
@@ -20,7 +26,7 @@ async function main() {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 12);
   await prisma.admin.create({
     data: { email, passwordHash, name },
   });

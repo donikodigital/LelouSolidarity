@@ -35,12 +35,12 @@ changent pas). Regenerer une carte EXPIRING_SOON/EXPIRED = renouvellement
 - **PostgreSQL** via **Prisma** (pense pour **Neon**)
 - **Cloudinary** - stockage des photos et des PDF de carte
 - **Resend** - envoi des e-mails transactionnels
-- **Puppeteer** (`puppeteer-core` + `@sparticuz/chromium`) - rendu HTML/CSS
-  vers PDF haute qualite, sans dependance systeme a installer sur Render
+- **pdfkit** - dessin du PDF de la carte (aucun navigateur a installer,
+  generation en moins d'une seconde)
 - **qrcode** - generation du QR code de chaque carte
 - **JWT** (`@nestjs/jwt` + `passport-jwt`) - authentification de l'espace
   administrateur
-- Prevu pour etre deploye sur **Render** (backend), le frontend a venir
+- Prevu pour etre deploye sur **Render** (backend), le frontend
   etant destine a **Vercel**
 
 ## Installation
@@ -63,24 +63,15 @@ npm run start:dev
 
 L'API ecoute sur `http://localhost:4000/api` (port configurable via `PORT`).
 
-**Puppeteer en local (Windows) :** `@sparticuz/chromium` cible un
-environnement Linux (Render). Pour tester la generation de carte en local
-sur Windows, installe Google Chrome normalement et ajoute dans `.env` :
-
-```
-PUPPETEER_EXECUTABLE_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"
-```
-
-En production sur Render, ne pas definir cette variable : le code bascule
-automatiquement sur `@sparticuz/chromium`.
-
 ## Deploiement sur Render
 
 - **Build command** : `npm install && npm run build`
 - **Start command** : `npm run start:prod`
 - Renseigner toutes les variables de `.env.example` dans l'onglet
   Environment de Render (`DATABASE_URL` = URL Neon, `FRONTEND_URL` = URL
-  Vercel du futur frontend, etc.)
+  Vercel du frontend, etc.). Mettre `NODE_ENV=production`.
+- `JWT_SECRET` : longue chaine aleatoire (32 caracteres minimum), par ex.
+  `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
 - Apres le premier deploiement, lancer une fois
   `npx prisma migrate deploy` puis `npx prisma db seed` (via le Shell
   Render, ou en local avec `DATABASE_URL` pointee sur Neon).
@@ -89,7 +80,7 @@ automatiquement sur `@sparticuz/chromium`.
 
 | Methode | Route | Acces | Description |
 |---|---|---|---|
-| POST | `/auth/login` | public | Connexion administrateur (retourne un JWT) |
+| POST | `/auth/login` | public | Connexion administrateur (retourne un JWT) - 5 essais/minute/IP |
 | POST | `/admin/access-codes` | admin | Genere et envoie un code d'acces a un e-mail |
 | GET | `/admin/access-codes` | admin | Liste des codes generes |
 | POST | `/public/members/submit` | code d'acces | Soumission du formulaire (multipart, champ `photo`) |
@@ -108,12 +99,20 @@ Toutes les couleurs sont centralisees dans `src/common/theme.ts`
 (`primary`, `primaryDark`, ...). La teinte actuelle a ete extraite de la
 capture envoyee. Une fois le logo et le domaine definitifs recus, il
 suffit de mettre a jour ce fichier (et d'ajouter le vrai logo dans le
-gabarit `src/cards/card-template.ts`, actuellement un badge "LS" de
+gabarit `src/cards/card-pdf.ts`, actuellement un badge "LS" de
 remplacement) pour que la carte et tous les e-mails soient repercutes
 automatiquement.
 
-## Prochaine etape
+## Securite - a savoir
 
-Le frontend (formulaire public + espace administrateur, en React/Next.js,
-moderne et responsive) consommera cette API. A construire dans un second
-temps, comme convenu.
+- Le depot est public : **aucun secret ne doit y figurer** (cles Cloudinary,
+  mots de passe, tokens). Tout passe par les variables d'environnement.
+- Le seed (`npm run prisma:seed`) n'a aucune valeur par defaut : `ADMIN_EMAIL`
+  et `ADMIN_PASSWORD` (12 caracteres minimum) sont obligatoires.
+- Un changement de mot de passe (reinitialisation) deconnecte toutes les
+  sessions administrateur ouvertes.
+- Les fichiers Cloudinary (photos, PDF des cartes) ont un nom aleatoire : leur
+  adresse ne peut pas etre devinee.
+- Cartes emises avant ce correctif : lancer une fois
+  `npx ts-node scripts/rotate-card-urls.ts` (simulation) puis
+  `npx ts-node scripts/rotate-card-urls.ts --apply` pour renommer leurs PDF.

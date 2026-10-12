@@ -35,22 +35,23 @@ async function bootstrap() {
     .map((o) => o.trim())
     .filter(Boolean);
 
-  // Liste globale des origines autorisées (celles de Render + celles codées en dur par sécurité)
+  // Liste globale des origines autorisées (celles de Render + les domaines de production).
+  // localhost n'est autorisé qu'en développement : en production, une page locale
+  // ne doit pas pouvoir appeler l'API.
+  const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = [
     'https://lelousolidarity.win',
     'https://www.lelousolidarity.win',
-    'http://localhost:3000',
+    ...(isProduction ? [] : ['http://localhost:3000']),
     ...envOrigins,
   ];
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Autorise les requêtes sans origin (Serveur, Postman) ou celles présentes dans la liste
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origine non autorisée par CORS: ${origin}`));
-      }
+      // Autorise les requêtes sans origin (serveur, outils) ou celles présentes dans la liste.
+      // Une origine inconnue est simplement refusée (pas d'en-têtes CORS) : le navigateur
+      // bloque l'appel, sans erreur 500 côté serveur.
+      callback(null, !origin || allowedOrigins.includes(origin));
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

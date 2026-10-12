@@ -3,6 +3,12 @@ import { ResetPasswordForm } from '@/components/admin/ResetPasswordForm';
 
 export const metadata = { title: 'Nouveau mot de passe - Espace administrateur' };
 
-export default function ResetPasswordPage({ params }: { params: { token: string } }) {
-  return <ResetPasswordForm token={params.token} />;
+// Next.js 15 : `params` est une promesse
+export default async function ResetPasswordPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  return <ResetPasswordForm token={token} />;
 }

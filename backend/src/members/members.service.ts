@@ -33,6 +33,15 @@ const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 Mo
 const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/jpg', 'image/png'];
 const MAX_CODE_LENGTH = 32;
 
+/** Vérifie les premiers octets du fichier : le type MIME envoyé par le navigateur peut être falsifié. */
+export function hasImageSignature(buffer: Buffer): boolean {
+  const isJpeg = buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isPng =
+    buffer.length > 8 &&
+    buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  return isJpeg || isPng;
+}
+
 export type AccessCodeState = 'VALID' | 'USED' | 'INVALID';
 
 /** Informations reprises de la demande de formulaire (champs verrouillés dans le formulaire). */
@@ -114,6 +123,9 @@ export class MembersService {
     if (photo.size > MAX_PHOTO_BYTES) {
       throw new BadRequestException('La photo ne doit pas dépasser 10 Mo.');
     }
+    if (!hasImageSignature(photo.buffer)) {
+      throw new BadRequestException('La photo doit être au format JPG ou PNG.');
+    }
 
     const accessCode = await this.prisma.accessCode.findUnique({
       where: { code: dto.code.toUpperCase().trim() },
@@ -138,6 +150,22 @@ export class MembersService {
       phone: (fixed?.phone ?? dto.phone).trim(),
       email: (fixed?.email ?? dto.email).toLowerCase().trim(),
     };
+
+    // Même personne déjà enregistrée (même nom + même e-mail) : pas de doublon.
+    // Plusieurs membres d'une même famille peuvent en revanche partager une adresse e-mail.
+    const duplicate = await this.prisma.member.findFirst({
+      where: {
+        email: identity.email,
+        firstName: { equals: identity.firstName, mode: 'insensitive' },
+        lastName: { equals: identity.lastName, mode: 'insensitive' },
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new BadRequestException(
+        'Une demande existe déjà pour cette personne. Contactez l’association si vous pensez qu’il s’agit d’une erreur.',
+      );
+    }
 
     let upload: { secure_url: string; public_id: string };
     try {

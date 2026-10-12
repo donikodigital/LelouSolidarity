@@ -77,8 +77,10 @@ const statusConfig: Record<
   },
 };
 
-export default async function VerifyPage({ params }: { params: { token: string } }) {
-  const lookup = await fetchVerification(params.token);
+// Next.js 15 : `params` est une promesse
+export default async function VerifyPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const lookup = await fetchVerification(token);
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-gradient-to-b from-ocean-600 to-ocean-500 px-6 py-14">
@@ -102,7 +104,7 @@ export default async function VerifyPage({ params }: { params: { token: string }
               réessayez. Cela ne signifie pas que la carte est invalide.
             </p>
             <a
-              href={`/verify/${encodeURIComponent(params.token)}`}
+              href={`/verify/${encodeURIComponent(token)}`}
               className="mt-2 inline-flex items-center justify-center rounded-xl bg-ocean-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-ocean-800/25 transition hover:bg-ocean-800"
             >
               Réessayer

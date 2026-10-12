@@ -1,8 +1,18 @@
 //backend/src/uploads/uploads.service.ts
 import { Inject, Injectable } from '@nestjs/common';
 import { UploadApiResponse, v2 as CloudinaryType } from 'cloudinary';
+import { randomBytes } from 'crypto';
 import { Readable } from 'stream';
 import { CLOUDINARY } from './cloudinary.provider';
+
+/**
+ * Suffixe aléatoire (128 bits) ajouté aux identifiants Cloudinary : les fichiers
+ * sont servis par une URL publique, il faut donc qu'elle soit impossible à
+ * deviner (avant, `carte_LS-2026-0001` se déduisait d'un simple compteur).
+ */
+function randomSuffix(): string {
+  return randomBytes(16).toString('hex');
+}
 
 /**
  * Pour un fichier "raw" (le PDF de la carte), l'identifiant public Cloudinary
@@ -23,7 +33,7 @@ export class UploadsService {
   uploadMemberPhoto(buffer: Buffer, memberEmail: string): Promise<UploadApiResponse> {
     return this.uploadBuffer(buffer, {
       folder: 'lelou-solidarity/photos',
-      public_id: `photo_${Date.now()}`,
+      public_id: `photo_${Date.now()}_${randomSuffix()}`,
       context: { email: memberEmail },
     });
   }
@@ -32,7 +42,7 @@ export class UploadsService {
   uploadCardPdf(buffer: Buffer, memberCode: string): Promise<UploadApiResponse> {
     return this.uploadBuffer(buffer, {
       folder: 'lelou-solidarity/cards',
-      public_id: `carte_${memberCode}`,
+      public_id: `carte_${memberCode}_${randomSuffix()}`,
       resource_type: 'raw',
       format: 'pdf',
     });

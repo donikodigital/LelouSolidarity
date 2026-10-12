@@ -8,6 +8,11 @@ import { MailService } from '../mail/mail.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { passwordFingerprint } from './password-fingerprint';
+
+// Hash factice : comparé quand l'e-mail est inconnu, pour que la réponse prenne
+// le même temps qu'avec un vrai compte (on ne laisse pas deviner quels e-mails existent).
+const DUMMY_HASH = bcrypt.hashSync('mot-de-passe-factice', 12);
 
 @Injectable()
 export class AuthService {
@@ -22,18 +27,15 @@ export class AuthService {
       where: { email: dto.email.toLowerCase().trim() },
     });
 
-    if (!admin) {
-      throw new UnauthorizedException('Identifiants incorrects');
-    }
-
-    const valid = await bcrypt.compare(dto.password, admin.passwordHash);
-    if (!valid) {
+    const valid = await bcrypt.compare(dto.password, admin?.passwordHash ?? DUMMY_HASH);
+    if (!admin || !valid) {
       throw new UnauthorizedException('Identifiants incorrects');
     }
 
     const accessToken = await this.jwt.signAsync({
       sub: admin.id,
       email: admin.email,
+      pv: passwordFingerprint(admin.passwordHash),
     });
 
     return {
@@ -72,7 +74,7 @@ export class AuthService {
       throw new BadRequestException('Ce lien de reinitialisation est invalide ou a expire.');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     await this.prisma.admin.update({
       where: { id: admin.id },

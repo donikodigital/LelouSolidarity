@@ -182,6 +182,19 @@ export class CardsService {
     });
     lap('base');
 
+    // Chaque génération crée un nouveau fichier (nom aléatoire) : l'ancien PDF de
+    // la carte est supprimé de Cloudinary pour ne pas laisser de fichier orphelin
+    // (et d'ancienne version de la carte restée accessible).
+    if (member.cardPdfUrl && member.cardPdfUrl !== upload.secure_url) {
+      void this.uploads
+        .deleteCardPdf(member.cardPdfUrl)
+        .catch((err) =>
+          this.logger.warn(
+            `Ancien PDF de carte non supprimé pour ${member.email}: ${(err as Error).message}`,
+          ),
+        );
+    }
+
     // L'e-mail part en arrière-plan : la carte est déjà enregistrée, l'administrateur
     // n'a pas à attendre Resend. En cas d'échec, l'erreur est écrite dans les logs.
     void this.mail
