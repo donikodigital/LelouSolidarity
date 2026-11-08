@@ -51,6 +51,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
 export function useSession() {
   const ctx = useContext(SessionContext);
-  if (!ctx) throw new Error('useSession doit etre utilise dans SessionProvider');
+  if (!ctx) throw new Error('useSession must be used within SessionProvider');
   return ctx;
 }

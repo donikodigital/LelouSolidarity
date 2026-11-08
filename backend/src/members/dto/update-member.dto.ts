@@ -32,6 +32,12 @@ export class UpdateMemberDto {
   @IsString()
   @MinLength(1)
   @MaxLength(120)
+  birthCity?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
   originDistrict?: string;
 
   @IsOptional()
@@ -57,6 +63,12 @@ export class UpdateMemberDto {
   @MinLength(1)
   @MaxLength(80)
   state?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  country?: string;
 
   @IsOptional()
   @IsString()

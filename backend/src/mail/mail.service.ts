@@ -1,4 +1,5 @@
 //backend/src/mail/mail.service.ts
+// v1.7 — chaque envoi reçoit la langue du destinataire (objets, gabarits, dates, nom du PDF).
 // v1.6 — sendFormRequestNotification() : prévient les administrateurs d'une
 // demande de formulaire (reply-to = adresse du membre).
 // v1.5 — l'e-mail d'accès n'affiche plus le code : il reste uniquement dans le
@@ -14,6 +15,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { resolveFrontendUrl } from '../common/frontend-url';
+import { DEFAULT_LOCALE, Locale, formatLongDate } from '../common/i18n';
 import {
   accessCodeEmail,
   cardExpiredEmail,
@@ -23,6 +25,37 @@ import {
   resetPasswordEmail,
   submissionReceivedEmail,
 } from './templates';
+
+const SUBJECTS: Record<Locale, Record<string, string>> = {
+  fr: {
+    access: 'Votre accès au formulaire d’adhésion - LELOU SOLIDARITY',
+    reset: 'Réinitialisation de mot de passe - LELOU SOLIDARITY',
+    received: 'Demande reçue - LELOU SOLIDARITY',
+    cardReady: 'Votre carte de membre LELOU SOLIDARITY',
+    reminder: 'Votre carte arrive à expiration - LELOU SOLIDARITY',
+    expired: 'Votre carte a expiré - LELOU SOLIDARITY',
+    formRequest: 'Nouvelle demande de formulaire',
+  },
+  en: {
+    access: 'Your access to the membership form - LELOU SOLIDARITY',
+    reset: 'Password reset - LELOU SOLIDARITY',
+    received: 'Request received - LELOU SOLIDARITY',
+    cardReady: 'Your LELOU SOLIDARITY membership card',
+    reminder: 'Your card is about to expire - LELOU SOLIDARITY',
+    expired: 'Your card has expired - LELOU SOLIDARITY',
+    formRequest: 'New form request',
+  },
+  // Pular (Fuuta Jallon) — à faire relire ; l'objet admin reste en français
+  ff: {
+    access: 'Lien maaɗa ngam formulaire naatugo - LELOU SOLIDARITY',
+    reset: 'Réinitialisation de mot de passe - LELOU SOLIDARITY',
+    received: 'Ƴamol hebaama - LELOU SOLIDARITY',
+    cardReady: 'Karte maaɗa kawtaaɗo LELOU SOLIDARITY',
+    reminder: 'Karte maaɗa ɗon hesɗitina - LELOU SOLIDARITY',
+    expired: 'Karte maaɗa timmii - LELOU SOLIDARITY',
+    formRequest: 'Nouvelle demande de formulaire',
+  },
+};
 
 @Injectable()
 export class MailService {
@@ -39,27 +72,32 @@ export class MailService {
     this.logoUrl = `${this.frontendUrl}/logo.png`;
   }
 
-  async sendAccessCode(email: string, code: string) {
-    // Le code est ajouté à l'adresse pour que le formulaire se remplisse seul
-    const formUrl = `${this.frontendUrl}/formulaire?code=${encodeURIComponent(code)}`;
+  async sendAccessCode(email: string, code: string, locale: Locale = DEFAULT_LOCALE) {
+    // Le code est ajouté à l'adresse pour que le formulaire se remplisse seul ;
+    // « lang » fait s'ouvrir le site dans la langue de l'e-mail.
+    const formUrl = `${this.frontendUrl}/formulaire?code=${encodeURIComponent(code)}&lang=${locale}`;
     return this.send(
       email,
-      'Votre accès au formulaire d’adhésion - LELOU SOLIDARITY',
-      accessCodeEmail(formUrl, this.logoUrl),
+      SUBJECTS[locale].access,
+      accessCodeEmail(formUrl, this.logoUrl, locale),
     );
   }
 
-  async sendPasswordReset(email: string, name: string, token: string) {
-    const resetUrl = `${this.frontendUrl}/admin/reset-password/${token}`;
+  async sendPasswordReset(email: string, name: string, token: string, locale: Locale = DEFAULT_LOCALE) {
+    const resetUrl = `${this.frontendUrl}/admin/reset-password/${token}?lang=${locale}`;
     return this.send(
       email,
-      'Réinitialisation de mot de passe - LELOU SOLIDARITY',
-      resetPasswordEmail(name, resetUrl, this.logoUrl),
+      SUBJECTS[locale].reset,
+      resetPasswordEmail(name, resetUrl, this.logoUrl, locale),
     );
   }
 
-  async sendSubmissionReceived(email: string, firstName: string) {
-    return this.send(email, 'Demande reçue - LELOU SOLIDARITY', submissionReceivedEmail(firstName, this.logoUrl));
+  async sendSubmissionReceived(email: string, firstName: string, locale: Locale = DEFAULT_LOCALE) {
+    return this.send(
+      email,
+      SUBJECTS[locale].received,
+      submissionReceivedEmail(firstName, this.logoUrl, locale),
+    );
   }
 
   async sendCardReady(
@@ -68,54 +106,72 @@ export class MailService {
     memberCode: string,
     expiresAt: Date,
     pdfBuffer: Buffer,
+    locale: Locale = DEFAULT_LOCALE,
   ) {
     return this.send(
       email,
-      'Votre carte de membre LELOU SOLIDARITY',
-      cardReadyEmail(firstName, memberCode, formatDate(expiresAt), this.logoUrl),
+      SUBJECTS[locale].cardReady,
+      cardReadyEmail(firstName, memberCode, formatLongDate(expiresAt, locale), this.logoUrl, locale),
       [
         {
-          filename: `carte-membre-${memberCode}.pdf`,
+          filename: `${locale === 'en' ? 'membership-card' : locale === 'ff' ? 'karte-kawtaado' : 'carte-membre'}-${memberCode}.pdf`,
           content: pdfBuffer.toString('base64'),
         },
       ],
     );
   }
 
-  async sendExpirationReminder(email: string, firstName: string, expiresAt: Date) {
+  async sendExpirationReminder(
+    email: string,
+    firstName: string,
+    expiresAt: Date,
+    locale: Locale = DEFAULT_LOCALE,
+  ) {
     return this.send(
       email,
-      'Votre carte arrive à expiration - LELOU SOLIDARITY',
-      expirationReminderEmail(firstName, formatDate(expiresAt), this.logoUrl),
+      SUBJECTS[locale].reminder,
+      expirationReminderEmail(firstName, formatLongDate(expiresAt, locale), this.logoUrl, locale),
     );
   }
 
-  /** Prévient les administrateurs qu'un futur membre demande son formulaire. */
+  /**
+   * Prévient les administrateurs qu'un futur membre demande son formulaire.
+   * L'e-mail est rédigé dans la langue des administrateurs (français par défaut) ;
+   * la langue choisie par le demandeur y est indiquée.
+   */
   async sendFormRequestNotification(
     to: string[],
     request: {
       firstName: string;
       lastName: string;
       city: string;
+      state: string;
+      country: string;
       email: string;
       phone: string;
       message: string;
+      locale?: string;
     },
+    adminLocale: Locale = DEFAULT_LOCALE,
   ) {
-    const adminUrl = `${this.frontendUrl}/admin/demandes`;
+    const adminUrl = `${this.frontendUrl}/admin/demandes?lang=${adminLocale}`;
     // Pas de saut de ligne dans l'objet (valeurs saisies par un visiteur)
     const name = `${request.firstName} ${request.lastName}`.replace(/[\r\n]+/g, ' ').trim();
     return this.send(
       to,
-      `Nouvelle demande de formulaire - ${name}`,
-      formRequestEmail(request, adminUrl, this.logoUrl),
+      `${SUBJECTS[adminLocale].formRequest} - ${name}`,
+      formRequestEmail(request, adminUrl, this.logoUrl, adminLocale),
       undefined,
       { replyTo: request.email },
     );
   }
 
-  async sendCardExpired(email: string, firstName: string) {
-    return this.send(email, 'Votre carte a expiré - LELOU SOLIDARITY', cardExpiredEmail(firstName, this.logoUrl));
+  async sendCardExpired(email: string, firstName: string, locale: Locale = DEFAULT_LOCALE) {
+    return this.send(
+      email,
+      SUBJECTS[locale].expired,
+      cardExpiredEmail(firstName, this.logoUrl, locale),
+    );
   }
 
   private async send(
@@ -140,7 +196,7 @@ export class MailService {
         // (403, domaine non vérifié, destinataire refusé...) : il renvoie
         // { data: null, error }. Sans cette vérification explicite,
         // l'échec d'envoi passe totalement inaperçu.
-        throw new Error(error.message || 'Échec d’envoi via Resend');
+        throw new Error(error.message || 'Resend send failure');
       }
 
       return data;
@@ -149,12 +205,4 @@ export class MailService {
       throw err;
     }
   }
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
 }

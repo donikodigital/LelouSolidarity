@@ -4,6 +4,7 @@
 import { InputHTMLAttributes, ReactNode, forwardRef, useState } from 'react';
 import clsx from 'clsx';
 import { Eye, EyeOff } from 'lucide-react';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -17,6 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || props.name;
     const isPassword = type === 'password';
     const [visible, setVisible] = useState(false);
+    const t = useT();
 
     return (
       <div className="flex flex-col gap-1.5">
@@ -55,7 +57,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               tabIndex={-1}
               onClick={() => setVisible((v) => !v)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-ocean-600"
-              aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              aria-label={visible ? t.common.hidePassword : t.common.showPassword}
             >
               {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>

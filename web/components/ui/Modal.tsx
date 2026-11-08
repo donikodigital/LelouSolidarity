@@ -5,6 +5,7 @@ import { ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Card } from './Card';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 interface ModalProps {
   open: boolean;
@@ -21,6 +22,7 @@ const sizes: Record<NonNullable<ModalProps['size']>, string> = {
 };
 
 export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -47,7 +49,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t.common.close}
           className="absolute right-4 top-4 rounded-lg p-1 text-ocean-400 hover:bg-ocean-50 hover:text-ocean-700"
         >
           <X className="h-4 w-4" />

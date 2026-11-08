@@ -1,4 +1,3 @@
 //lelou-solidarity-frontend/lib/constants.ts
 export const ASSOCIATION_NAME = 'LELOU SOLIDARITY';
-export const ASSOCIATION_TAGLINE =
-  "Association des ressortissants de Lelouma aux Etats-Unis";
+// Le slogan traduit se trouve dans lib/i18n/dict/common.ts (associationTagline).

@@ -7,11 +7,13 @@ export interface Member {
   firstName: string;
   lastName: string;
   birthDate: string;
+  birthCity: string;
   originDistrict: string;
   originLocality: string;
   addressLine: string;
   city: string;
   state: string;
+  country: string;
   zipCode: string;
   phone: string;
   email: string;
@@ -22,6 +24,8 @@ export interface Member {
   cardIssuedAt: string | null;
   cardExpiresAt: string | null;
   cardPdfUrl: string | null;
+  /** Langue choisie par le membre (e-mails et carte) : « fr » ou « en ». */
+  locale?: string;
   createdAt: string;
 }
 
@@ -41,11 +45,15 @@ export interface FormRequest {
   firstName: string;
   lastName: string;
   city: string;
+  state: string;
+  country: string;
   email: string;
   phone: string;
   message: string;
   handled: boolean;
   handledAt: string | null;
+  /** Langue choisie par le demandeur (e-mails) : « fr » ou « en ». */
+  locale?: string;
   createdAt: string;
 }
 

@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AccessCodesService } from './access-codes.service';
 import { GenerateAccessCodeDto } from './dto/generate-code.dto';
 import { UpdateAccessCodeDto } from './dto/update-code.dto';
+import { Lang, Locale, parseLocale } from '../common/i18n';
 
 // Reserve a l'administrateur : c'est lui qui declenche l'envoi
 // du code d'acces par e-mail a un futur membre.
@@ -14,8 +15,9 @@ export class AccessCodesController {
   constructor(private readonly service: AccessCodesService) {}
 
   @Post()
-  generate(@Body() dto: GenerateAccessCodeDto) {
-    return this.service.generateAndSend(dto.email);
+  generate(@Body() dto: GenerateAccessCodeDto, @Lang() lang: Locale) {
+    // Langue de l'e-mail : celle choisie par l'administrateur, sinon celle de son interface
+    return this.service.generateAndSend(dto.email, dto.locale ? parseLocale(dto.locale) : lang);
   }
 
   @Get()

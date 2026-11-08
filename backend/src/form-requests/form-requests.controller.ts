@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { FormRequestsService } from './form-requests.service';
 import { CreateFormRequestDto } from './dto/create-form-request.dto';
+import { Lang, Locale } from '../common/i18n';
 
 @Controller()
 export class FormRequestsController {
@@ -13,8 +14,8 @@ export class FormRequestsController {
   // 5 demandes par heure et par adresse IP : empêche d'inonder la boîte des administrateurs.
   @Post('public/form-requests')
   @Throttle({ default: { limit: 5, ttl: 3_600_000 } })
-  create(@Body() dto: CreateFormRequestDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateFormRequestDto, @Lang() lang: Locale) {
+    return this.service.create(dto, lang);
   }
 
   // --- Espace administrateur ---

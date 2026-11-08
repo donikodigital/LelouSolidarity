@@ -1,3 +1,6 @@
+//backend/src/common/filters/http-exception.filter.ts
+// v1.1 — les messages d'erreur sont traduits selon la langue de la requête
+// (en-tête X-Lang) : voir common/error-messages.ts.
 import {
   ArgumentsHost,
   Catch,
@@ -6,7 +9,9 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { INTERNAL_ERROR, TOO_MANY_REQUESTS, translateMessage } from '../error-messages';
+import { localeFromRequest } from '../i18n';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -15,6 +20,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    const locale = localeFromRequest(request);
 
     const isHttp = exception instanceof HttpException;
     const status = isHttp
@@ -23,7 +30,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const body = isHttp
       ? (exception as HttpException).getResponse()
-      : { message: 'Erreur interne du serveur' };
+      : { message: INTERNAL_ERROR.fr };
 
     if (!isHttp) {
       this.logger.error(
@@ -31,8 +38,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
-    const payload =
-      typeof body === 'string' ? { message: body } : (body as object);
+    const payload = (typeof body === 'string' ? { message: body } : { ...(body as object) }) as {
+      message?: string | string[];
+    };
+
+    if (status === HttpStatus.TOO_MANY_REQUESTS) {
+      payload.message = TOO_MANY_REQUESTS[locale];
+    } else if (Array.isArray(payload.message)) {
+      // Erreurs de validation : une phrase par champ fautif
+      payload.message = payload.message.map((m) => translateMessage(m, locale));
+    } else if (typeof payload.message === 'string') {
+      payload.message = translateMessage(payload.message, locale);
+    }
 
     response.status(status).json({
       statusCode: status,

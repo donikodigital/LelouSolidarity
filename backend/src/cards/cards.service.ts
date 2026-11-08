@@ -24,6 +24,7 @@ import { UploadsService } from '../uploads/uploads.service';
 import { MailService } from '../mail/mail.service';
 import { resolveFrontendUrl } from '../common/frontend-url';
 import { renderMemberCardPdf } from './card-pdf';
+import { parseLocale } from '../common/i18n';
 
 const CARD_VALIDITY_YEARS = 1;
 
@@ -135,6 +136,9 @@ export class CardsService {
     const photo = await this.fetchPhoto(member.photoUrl);
     lap('photo');
 
+    // Carte et e-mail dans la langue choisie par le membre
+    const memberLocale = parseLocale(member.locale);
+
     let pdfBuffer: Buffer;
     try {
       pdfBuffer = await renderMemberCardPdf({
@@ -151,6 +155,7 @@ export class CardsService {
         photo,
         qrPng,
         status: 'ACTIVE',
+        locale: memberLocale,
       });
     } catch (err) {
       this.logger.error(`Échec du rendu PDF pour ${member.email}: ${(err as Error).message}`);
@@ -201,7 +206,14 @@ export class CardsService {
     // L'e-mail part en arrière-plan : la carte est déjà enregistrée, l'administrateur
     // n'a pas à attendre Resend. En cas d'échec, l'erreur est écrite dans les logs.
     void this.mail
-      .sendCardReady(updated.email, updated.firstName, memberCode, cardExpiresAt, pdfBuffer)
+      .sendCardReady(
+        updated.email,
+        updated.firstName,
+        memberCode,
+        cardExpiresAt,
+        pdfBuffer,
+        memberLocale,
+      )
       .catch((err) =>
         this.logger.error(
           `Échec de l'e-mail "carte prête" pour ${updated.email}: ${(err as Error).message}`,

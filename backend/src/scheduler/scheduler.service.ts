@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { parseLocale } from '../common/i18n';
 
 @Injectable()
 export class SchedulerService {
@@ -41,6 +42,7 @@ export class SchedulerService {
           member.email,
           member.firstName,
           member.cardExpiresAt as Date,
+          parseLocale(member.locale),
         );
         await this.prisma.member.update({
           where: { id: member.id },
@@ -70,7 +72,7 @@ export class SchedulerService {
 
     for (const member of members) {
       try {
-        await this.mail.sendCardExpired(member.email, member.firstName);
+        await this.mail.sendCardExpired(member.email, member.firstName, parseLocale(member.locale));
         await this.prisma.member.update({
           where: { id: member.id },
           data: { cardStatus: 'EXPIRED', expiredNotifiedAt: new Date() },

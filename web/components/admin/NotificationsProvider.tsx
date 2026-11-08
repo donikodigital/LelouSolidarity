@@ -15,6 +15,7 @@ import { apiAdmin } from '@/lib/api';
 import { AppNotification, buildNotifications } from '@/lib/notifications';
 import { FormRequest, Member } from '@/lib/types';
 import { useSession } from './SessionProvider';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 const REFRESH_MS = 60_000;
 
@@ -44,6 +45,7 @@ const AdminDataContext = createContext<AdminDataValue | null>(null);
  */
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
+  const { t, intl } = useI18n();
   const pathname = usePathname();
   const token = session.accessToken;
   const storageKey = `ls-notifications-seen:${session.admin.id}`;
@@ -75,13 +77,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         setMembers(m.value);
         setError(null);
       } else {
-        setError('Impossible de charger la liste des membres.');
+        setError(t.admin.members.loadError);
       }
       if (r.status === 'fulfilled') setRequests(r.value);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   // À chaque changement de page (et au premier affichage)
   useEffect(() => {
@@ -102,8 +104,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const notifications = useMemo(
-    () => buildNotifications(members || [], requests || []),
-    [members, requests],
+    () => buildNotifications(members || [], requests || [], t, intl),
+    [members, requests, t, intl],
   );
 
   const unreadCount = useMemo(
@@ -150,6 +152,6 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 export function useAdminData() {
   const ctx = useContext(AdminDataContext);
-  if (!ctx) throw new Error('useAdminData doit être utilisé dans NotificationsProvider');
+  if (!ctx) throw new Error('useAdminData must be used within NotificationsProvider');
   return ctx;
 }

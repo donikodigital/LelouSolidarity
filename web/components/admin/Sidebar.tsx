@@ -11,15 +11,17 @@ import { Logo } from '@/components/layout/Logo';
 import { useSession } from './SessionProvider';
 import { useAdminData } from './NotificationsProvider';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 const links = [
-  { href: '/admin', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/admin/demandes', label: 'Demandes', icon: Inbox },
-  { href: '/admin/membres', label: 'Membres', icon: Users },
-  { href: '/admin/codes', label: 'Codes d’accès', icon: KeyRound },
-];
+  { href: '/admin', key: 'dashboard', icon: LayoutDashboard },
+  { href: '/admin/demandes', key: 'requests', icon: Inbox },
+  { href: '/admin/membres', key: 'members', icon: Users },
+  { href: '/admin/codes', key: 'accessCodes', icon: KeyRound },
+] as const;
 
 export function Sidebar() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const { session, logout } = useSession();
   const { requestsToHandle } = useAdminData();
@@ -48,7 +50,7 @@ export function Sidebar() {
               )}
             >
               <link.icon className="h-5 w-5" />
-              <span className="flex-1">{link.label}</span>
+              <span className="flex-1">{t.admin.nav[link.key]}</span>
               {badge > 0 && (
                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
                   {badge > 9 ? '9+' : badge}
@@ -67,7 +69,7 @@ export function Sidebar() {
             className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-ocean-100 hover:bg-ocean-600"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Se déconnecter
+            {t.admin.nav.logout}
           </button>
         </div>
       </div>

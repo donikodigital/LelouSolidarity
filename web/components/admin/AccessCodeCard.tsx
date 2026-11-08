@@ -1,11 +1,15 @@
 //web/components/admin/AccessCodeCard.tsx
 // v1.1 — carte cliquable (ouvre la modale de detail/actions)
+'use client';
+
 import Link from 'next/link';
 import { KeyboardEvent } from 'react';
 import { CheckCircle2, Clock3 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { formatDate } from '@/lib/format';
 import { AccessCodeRecord } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 interface AccessCodeCardProps {
   record: AccessCodeRecord;
@@ -13,6 +17,8 @@ interface AccessCodeCardProps {
 }
 
 export function AccessCodeCard({ record, onClick }: AccessCodeCardProps) {
+  const { t, locale } = useI18n();
+  const tc = t.admin.codes;
   return (
     <Card
       role={onClick ? 'button' : undefined}
@@ -49,11 +55,11 @@ export function AccessCodeCard({ record, onClick }: AccessCodeCardProps) {
           </span>
         </div>
         <p className="mt-0.5 text-xs text-ocean-400">
-          Envoye le {formatDate(record.createdAt)}
+          {fmt(tc.sentOn, { date: formatDate(record.createdAt, locale) })}
           {record.used && record.member && (
             <>
               {' '}
-              &middot; utilise par{' '}
+              &middot; {tc.usedBy}{' '}
               <Link
                 href={`/admin/membres/${record.member.id}`}
                 onClick={(e) => e.stopPropagation()}
@@ -70,7 +76,7 @@ export function AccessCodeCard({ record, onClick }: AccessCodeCardProps) {
           record.used ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
         }`}
       >
-        {record.used ? 'Utilise' : 'En attente'}
+        {record.used ? tc.used : tc.pending}
       </span>
     </Card>
   );

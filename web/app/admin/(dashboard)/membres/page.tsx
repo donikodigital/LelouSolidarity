@@ -12,16 +12,11 @@ import { MemberListCard } from '@/components/admin/MemberListCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { Member } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 type FilterKey = 'ALL' | 'PENDING' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
 
-const filters: { key: FilterKey; label: string }[] = [
-  { key: 'ALL', label: 'Tous' },
-  { key: 'PENDING', label: 'En attente' },
-  { key: 'ACTIVE', label: 'Actifs' },
-  { key: 'EXPIRING_SOON', label: 'À renouveler' },
-  { key: 'EXPIRED', label: 'Expirés' },
-];
+const FILTER_KEYS: FilterKey[] = ['ALL', 'PENDING', 'ACTIVE', 'EXPIRING_SOON', 'EXPIRED'];
 
 function matchesFilter(member: Member, filter: FilterKey): boolean {
   if (filter === 'ALL') return true;
@@ -30,6 +25,8 @@ function matchesFilter(member: Member, filter: FilterKey): boolean {
 }
 
 export default function MembresPage() {
+  const { t } = useI18n();
+  const tm = t.admin.members;
   const { members, loading, error } = useMembers();
   const [active, setActive] = useState<FilterKey>('ALL');
 
@@ -42,10 +39,10 @@ export default function MembresPage() {
     <div className="flex w-full min-w-0 flex-col gap-6">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-ocean-800 sm:text-3xl">
-          Membres
+          {tm.title}
         </h1>
         <p className="mt-1 text-sm text-ocean-400">
-          Demandes d&apos;adhésion reçues et cartes de membre.
+          {tm.subtitle}
         </p>
       </div>
 
@@ -53,17 +50,17 @@ export default function MembresPage() {
           2 plus larges sur la 2e), 5 colonnes égales sur grand écran. */}
       <div
         role="group"
-        aria-label="Filtrer les membres"
+        aria-label={tm.filterAria}
         className="grid grid-cols-6 gap-1.5 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200 sm:grid-cols-5"
       >
-        {filters.map((f, index) => {
-          const isActive = active === f.key;
+        {FILTER_KEYS.map((key, index) => {
+          const isActive = active === key;
           return (
             <button
-              key={f.key}
+              key={key}
               type="button"
               aria-pressed={isActive}
-              onClick={() => setActive(f.key)}
+              onClick={() => setActive(key)}
               className={clsx(
                 'rounded-xl px-2 py-2.5 text-center text-[13px] font-semibold leading-tight transition-all sm:text-sm',
                 index < 3 ? 'col-span-2 sm:col-span-1' : 'col-span-3 sm:col-span-1',
@@ -72,7 +69,7 @@ export default function MembresPage() {
                   : 'text-ocean-600 hover:bg-ocean-50',
               )}
             >
-              {f.label}
+              {tm.filters[key]}
             </button>
           );
         })}
@@ -93,8 +90,8 @@ export default function MembresPage() {
       {!loading && !error && filtered.length === 0 && (
         <EmptyState
           icon={<Users className="h-8 w-8" />}
-          title="Aucun membre dans cette catégorie"
-          description="Les nouvelles demandes soumises via le formulaire public apparaîtront ici."
+          title={tm.emptyTitle}
+          description={tm.emptyText}
         />
       )}
 

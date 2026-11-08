@@ -31,6 +31,20 @@ export class CreateFormRequestDto {
   city!: string;
 
   @Transform(trim)
+  @IsString({ message: 'L’état est obligatoire.' })
+  @IsNotEmpty({ message: 'L’état est obligatoire.' })
+  @MaxLength(80, { message: 'Le nom de l’état est trop long.' })
+  @Matches(SIMPLE_TEXT, { message: SIMPLE_TEXT_MESSAGE })
+  state!: string;
+
+  @Transform(trim)
+  @IsString({ message: 'Le pays est obligatoire.' })
+  @IsNotEmpty({ message: 'Le pays est obligatoire.' })
+  @MaxLength(80, { message: 'Le nom du pays est trop long.' })
+  @Matches(SIMPLE_TEXT, { message: SIMPLE_TEXT_MESSAGE })
+  country!: string;
+
+  @Transform(trim)
   @IsEmail({}, { message: 'Adresse e-mail invalide.' })
   @MaxLength(160, { message: 'L’adresse e-mail est trop longue.' })
   email!: string;

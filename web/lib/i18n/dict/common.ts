@@ -1,0 +1,96 @@
+//web/lib/i18n/dict/common.ts
+import { pair } from '../pair';
+
+export const common = pair(
+  {
+    associationTagline: 'Association des ressortissants de Lelouma aux États-Unis',
+    logoAlt: 'Logo LELOU SOLIDARITY, INC.',
+    close: 'Fermer',
+    genericError: 'Une erreur est survenue, merci de réessayer.',
+    language: 'Langue',
+    showPassword: 'Afficher le mot de passe',
+    hidePassword: 'Masquer le mot de passe',
+    chooseLanguage: 'Choisir la langue',
+    photo: {
+      label: 'Photo d’identité',
+      badFormat: 'Format non supporté : utilisez une photo JPG ou PNG.',
+      tooBig: 'La photo dépasse 10 Mo, merci d’en choisir une plus légère.',
+      preview: 'Aperçu',
+      replace: 'Remplacer',
+      remove: 'Retirer',
+      drop: 'Touchez ou glissez votre photo ici',
+      hint: 'JPG ou PNG, 10 Mo maximum',
+    },
+    cardStatus: {
+      NONE: 'Pas de carte',
+      ACTIVE: 'Active',
+      EXPIRING_SOON: 'À renouveler',
+      EXPIRED: 'Expirée',
+    },
+    memberStatus: {
+      PENDING: 'En attente',
+      VALIDATED: 'Traité',
+    },
+  },
+  {
+    associationTagline: 'Association of Lelouma natives in the United States',
+    logoAlt: 'LELOU SOLIDARITY, INC. logo',
+    close: 'Close',
+    genericError: 'Something went wrong, please try again.',
+    language: 'Language',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    chooseLanguage: 'Choose language',
+    photo: {
+      label: 'ID photo',
+      badFormat: 'Unsupported format: please use a JPG or PNG photo.',
+      tooBig: 'The photo is larger than 10 MB, please choose a smaller one.',
+      preview: 'Preview',
+      replace: 'Replace',
+      remove: 'Remove',
+      drop: 'Tap or drag your photo here',
+      hint: 'JPG or PNG, 10 MB maximum',
+    },
+    cardStatus: {
+      NONE: 'No card',
+      ACTIVE: 'Active',
+      EXPIRING_SOON: 'Renew soon',
+      EXPIRED: 'Expired',
+    },
+    memberStatus: {
+      PENDING: 'Pending',
+      VALIDATED: 'Processed',
+    },
+  },
+  // Pular (Fuuta Jallon) — première version à faire relire par un locuteur
+  {
+    associationTagline: 'Kawtal Leloomaaɓe e Ameriki',
+    logoAlt: 'Logo LELOU SOLIDARITY, INC.',
+    close: 'Daaɗu',
+    genericError: 'Ɗum waɗaaki. Tiiɗno, ɗaɓɓitu.',
+    language: 'Ɗemngal',
+    showPassword: 'Hollu sirru',
+    hidePassword: 'Suuɗu sirru',
+    chooseLanguage: 'Suɓtu ɗemngal',
+    photo: {
+      label: 'Foto maaɗa',
+      badFormat: 'Foto ɗo ngalaa: huutinan foto JPG malla PNG.',
+      tooBig: 'Foto ɗo mawni ɓuri 10 Mo. Suɓtu woɗɗa.',
+      preview: 'Foto maaɗa',
+      replace: 'Sanjin',
+      remove: 'Ittu',
+      drop: 'Taɓɓu ɗo ngam suɓtugo foto maaɗa',
+      hint: 'JPG malla PNG, 10 Mo ɓuri',
+    },
+    cardStatus: {
+      NONE: 'Karte walaa',
+      ACTIVE: 'Ɗon e huuwugo',
+      EXPIRING_SOON: 'Sey a hesɗitina',
+      EXPIRED: 'Timmii',
+    },
+    memberStatus: {
+      PENDING: 'E reeni',
+      VALIDATED: 'Hoolaama',
+    },
+  },
+);

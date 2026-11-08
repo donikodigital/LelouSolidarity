@@ -1,16 +1,18 @@
 //web/lib/format.ts
-export function formatDate(value: string | null | undefined): string {
+import { LOCALE_META, type Locale } from './i18n/config';
+
+export function formatDate(value: string | null | undefined, locale: Locale = 'fr'): string {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('fr-FR', {
+  return new Intl.DateTimeFormat(LOCALE_META[locale].intl, {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   }).format(new Date(value));
 }
 
-export function formatDateShort(value: string | null | undefined): string {
+export function formatDateShort(value: string | null | undefined, locale: Locale = 'fr'): string {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('fr-FR', {
+  return new Intl.DateTimeFormat(LOCALE_META[locale].intl, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

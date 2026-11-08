@@ -6,26 +6,28 @@ import { usePathname } from 'next/navigation';
 import { Inbox, KeyRound, LayoutDashboard, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminData } from './NotificationsProvider';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 const items = [
-  { href: '/admin', label: 'Accueil', icon: LayoutDashboard },
-  { href: '/admin/demandes', label: 'Demandes', icon: Inbox },
-  { href: '/admin/membres', label: 'Membres', icon: Users },
-  { href: '/admin/codes', label: 'Codes', icon: KeyRound },
-];
+  { href: '/admin', key: 'home', icon: LayoutDashboard },
+  { href: '/admin/demandes', key: 'requests', icon: Inbox },
+  { href: '/admin/membres', key: 'members', icon: Users },
+  { href: '/admin/codes', key: 'codes', icon: KeyRound },
+] as const;
 
 /** Barre de navigation flottante en bas de l'écran (mobile uniquement). */
 export function BottomNav() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const { requestsToHandle } = useAdminData();
 
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label={t.admin.nav.main}
       className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden"
     >
       <div className="mx-auto flex max-w-md items-stretch justify-between rounded-3xl bg-white/90 p-1.5 shadow-[0_10px_35px_rgba(10,60,90,0.22)] ring-1 ring-ocean-100 backdrop-blur-xl">
-        {items.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, key, icon: Icon }) => {
           const active = href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
           const badge = href === '/admin/demandes' ? requestsToHandle : 0;
           return (
@@ -59,7 +61,7 @@ export function BottomNav() {
                   active ? 'text-ocean-800' : 'text-ocean-400',
                 )}
               >
-                {label}
+                {t.admin.nav[key]}
               </span>
             </Link>
           );

@@ -7,6 +7,8 @@ import clsx from 'clsx';
 import { ComponentType } from 'react';
 import { Sheet } from '@/components/ui/Sheet';
 import { AppNotification, NotificationKind, timeAgo } from '@/lib/notifications';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 const KINDS: Record<
   NotificationKind,
@@ -34,18 +36,20 @@ export function NotificationsSheet({
   seenAtSnapshot,
   onMarkAllRead,
 }: NotificationsSheetProps) {
+  const { t, intl } = useI18n();
+  const tn = t.admin.notifications;
   const unread = notifications.filter((n) => Date.parse(n.date) > seenAtSnapshot).length;
 
   return (
-    <Sheet open={open} onClose={onClose} title="Notifications">
+    <Sheet open={open} onClose={onClose} title={tn.title}>
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-ocean-50 text-ocean-300">
             <Bell className="h-7 w-7" />
           </span>
-          <p className="text-base font-semibold text-ocean-800">Aucune notification</p>
+          <p className="text-base font-semibold text-ocean-800">{tn.none}</p>
           <p className="max-w-xs text-sm text-ocean-500">
-            Les nouvelles demandes et les cartes à renouveler apparaîtront ici.
+            {tn.noneText}
           </p>
         </div>
       ) : (
@@ -53,8 +57,8 @@ export function NotificationsSheet({
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-xs font-medium text-ocean-400">
               {unread > 0
-                ? `${unread} non lue${unread > 1 ? 's' : ''}`
-                : 'Tout est lu'}
+                ? fmt(unread > 1 ? tn.unreadMany : tn.unreadOne, { n: unread })
+                : tn.allRead}
             </p>
             {unread > 0 && (
               <button
@@ -62,7 +66,7 @@ export function NotificationsSheet({
                 onClick={onMarkAllRead}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-ocean-600 hover:text-ocean-800"
               >
-                <CheckCheck className="h-3.5 w-3.5" /> Tout marquer comme lu
+                <CheckCheck className="h-3.5 w-3.5" /> {tn.markAll}
               </button>
             )}
           </div>
@@ -101,7 +105,7 @@ export function NotificationsSheet({
                         {n.body}
                       </span>
                       <span className="mt-1 block text-[11px] font-medium text-ocean-300">
-                        {timeAgo(n.date)}
+                        {timeAgo(n.date, t, intl)}
                       </span>
                     </span>
                     {isUnread && (

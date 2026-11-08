@@ -54,9 +54,13 @@ model FormRequest {
   firstName String
   lastName  String
   city      String
+  state     String    @default("") // Etat de residence ; vide pour les demandes faites avant l'ajout du champ
+  country   String    @default("États-Unis")
   email     String
   phone     String
   message   String
+  locale    String    @default("fr") // langue choisie par le demandeur (fr | en) : e-mails
+
   handled   Boolean   @default(false)
   handledAt DateTime?
   createdAt DateTime  @default(now())
@@ -79,6 +83,7 @@ model Member {
   firstName      String
   lastName       String
   birthDate      DateTime
+  birthCity      String   @default("") // Ville de naissance ; vide pour les membres inscrits avant l'ajout du champ
 
   // Origine
   originDistrict String   // Ville d'origine (ex. Lelouma)
@@ -88,6 +93,8 @@ model Member {
   addressLine    String
   city           String
   state          String
+  country        String   @default("États-Unis")
+  locale         String   @default("fr") // langue choisie par le membre (fr | en) : e-mails, carte PDF, rappels
   zipCode        String
 
   // Contact

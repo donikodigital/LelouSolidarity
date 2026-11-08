@@ -23,11 +23,15 @@ import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { formatDate, formatYear, formatPhone } from '@/lib/format';
 import { Member } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { LOCALE_META, isLocale } from '@/lib/i18n/config';
 
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { session } = useSession();
+  const { t, locale } = useI18n();
+  const td = t.admin.detail;
 
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,11 +48,11 @@ export default function MemberDetailPage() {
       const data = await apiAdmin(`/admin/members/${id}`, session.accessToken);
       setMember(data);
     } catch {
-      setError('Impossible de charger ce membre.');
+      setError(td.loadError);
     } finally {
       setLoading(false);
     }
-  }, [id, session.accessToken]);
+  }, [id, session.accessToken, td.loadError]);
 
   useEffect(() => {
     load();
@@ -63,9 +67,9 @@ export default function MemberDetailPage() {
         method: 'POST',
       });
       setMember(updated);
-      setSuccessMsg('Carte generee et envoyee par e-mail au membre.');
+      setSuccessMsg(td.cardGenerated);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Echec de la generation de la carte.');
+      setError(err instanceof ApiError ? err.message : td.generateFailed);
     } finally {
       setGenerating(false);
     }
@@ -75,11 +79,7 @@ export default function MemberDetailPage() {
     setMember(updated);
     setEditOpen(false);
     setError(null);
-    setSuccessMsg(
-      cardOutdated
-        ? 'Informations mises a jour. Le PDF de la carte n\u2019est plus a jour : regenerez-la (le membre recevra un nouvel e-mail).'
-        : 'Informations mises a jour.',
-    );
+    setSuccessMsg(cardOutdated ? td.savedOutdated : td.saved);
     // Le message est en haut de page : sur mobile, on y ramene l'ecran
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -99,17 +99,17 @@ export default function MemberDetailPage() {
   if (!member) {
     return (
       <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-        <AlertCircle className="h-4 w-4" /> {error || 'Membre introuvable.'}
+        <AlertCircle className="h-4 w-4" /> {error || td.notFound}
       </div>
     );
   }
 
   const actionLabel =
     member.cardStatus === 'NONE'
-      ? 'Generer la carte'
+      ? td.generate
       : member.cardStatus === 'ACTIVE'
-        ? 'Reimprimer la carte'
-        : 'Renouveler la carte';
+        ? td.reprint
+        : td.renew;
 
   return (
     <div className="flex flex-col gap-6">
@@ -117,7 +117,7 @@ export default function MemberDetailPage() {
         onClick={() => router.push('/admin/membres')}
         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-ocean-500 hover:text-ocean-700"
       >
-        <ArrowLeft className="h-4 w-4" /> Retour aux membres
+        <ArrowLeft className="h-4 w-4" /> {td.backToMembers}
       </button>
 
       {error && (
@@ -157,16 +157,22 @@ export default function MemberDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="flex flex-col p-6">
           <h2 className="text-sm font-bold uppercase tracking-wide text-ocean-400">
-            Informations personnelles
+            {td.personalInfo}
           </h2>
           <dl className="mt-4 flex flex-col divide-y divide-slate-100 text-sm">
-            <Info label="Annee de naissance" value={formatYear(member.birthDate)} />
-            <Info label="Ville d'origine" value={member.originDistrict} />
-            <Info label="Localite d'origine" value={member.originLocality || '-'} />
-            <Info label="Adresse" value={member.addressLine} />
-            <Info label="Ville de residence" value={`${member.city}, ${member.state} ${member.zipCode}`} />
-            <Info label="Telephone" value={formatPhone(member.phone)} />
-            <Info label="Demande recue le" value={formatDate(member.createdAt)} />
+            <Info label={td.birthYear} value={formatYear(member.birthDate)} />
+            <Info label={td.birthCity} value={member.birthCity || '-'} />
+            <Info label={td.originCity} value={member.originDistrict} />
+            <Info label={td.originLocality} value={member.originLocality || '-'} />
+            <Info label={td.address} value={member.addressLine} />
+            <Info label={td.residenceCity} value={`${member.city}, ${member.state} ${member.zipCode}`} />
+            <Info label={td.country} value={member.country || '-'} />
+            <Info label={td.phone} value={formatPhone(member.phone)} />
+            <Info
+              label={td.language}
+              value={member.locale && isLocale(member.locale) ? LOCALE_META[member.locale].label : '-'}
+            />
+            <Info label={td.requestReceived} value={formatDate(member.createdAt, locale)} />
           </dl>
 
           {/* mt-auto : les boutons restent en bas de la carte, meme quand la
@@ -179,7 +185,7 @@ export default function MemberDetailPage() {
                 className="flex-1"
               >
                 <Pencil className="h-4 w-4" />
-                Modifier
+                {td.edit}
               </Button>
               <Button
                 variant="danger"
@@ -187,7 +193,7 @@ export default function MemberDetailPage() {
                 className="flex-1"
               >
                 <Trash2 className="h-4 w-4" />
-                Supprimer
+                {td.remove}
               </Button>
             </div>
           </div>
@@ -195,25 +201,25 @@ export default function MemberDetailPage() {
 
         <Card className="flex flex-col p-6">
           <h2 className="text-sm font-bold uppercase tracking-wide text-ocean-400">
-            Carte de membre
+            {td.card}
           </h2>
 
           {member.memberCode ? (
             <dl className="mt-4 flex flex-col divide-y divide-slate-100 text-sm">
-              <Info label="Identifiant" value={member.memberCode} />
-              <Info label="Emise le" value={formatDate(member.cardIssuedAt)} />
-              <Info label="Expire le" value={formatDate(member.cardExpiresAt)} />
+              <Info label={td.memberId} value={member.memberCode} />
+              <Info label={td.issuedOn} value={formatDate(member.cardIssuedAt, locale)} />
+              <Info label={td.expiresOn} value={formatDate(member.cardExpiresAt, locale)} />
             </dl>
           ) : (
             <p className="mt-4 text-sm text-ocean-400">
-              Aucune carte generee pour l&apos;instant.
+              {td.noCard}
             </p>
           )}
 
           <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
             <Button onClick={handleGenerate} loading={generating} className="flex-1">
               <IdCard className="h-4 w-4" />
-              {generating ? 'Generation...' : actionLabel}
+              {generating ? td.generating : actionLabel}
             </Button>
             {member.cardPdfUrl && (
               <a
@@ -224,7 +230,7 @@ export default function MemberDetailPage() {
               >
                 <Button variant="secondary" className="w-full">
                   <Download className="h-4 w-4" />
-                  Telecharger le PDF
+                  {td.downloadPdf}
                 </Button>
               </a>
             )}
@@ -233,13 +239,13 @@ export default function MemberDetailPage() {
           {member.cardStatus === 'ACTIVE' && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-ocean-400">
               <RefreshCw className="h-3.5 w-3.5 flex-shrink-0" />
-              Reimprimer conserve la meme date d&apos;expiration (utile en cas de correction).
+              {td.reprintNote}
             </p>
           )}
           {(member.cardStatus === 'EXPIRING_SOON' || member.cardStatus === 'EXPIRED') && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-ocean-400">
               <RefreshCw className="h-3.5 w-3.5 flex-shrink-0" />
-              Le renouvellement relance une nouvelle periode de validite d&apos;un an.
+              {td.renewNote}
             </p>
           )}
         </Card>

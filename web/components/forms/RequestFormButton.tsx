@@ -1,44 +1,60 @@
 //web/components/forms/RequestFormButton.tsx
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Mail, Send } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { apiPublic, ApiError } from '@/lib/api';
-
-// Message type : il accompagne les informations du membre. Le même texte est
-// enregistré côté serveur (le membre ne peut pas le modifier).
-const REQUEST_MESSAGE =
-  'Bonjour, je me permets de vous demander de m’envoyer mon formulaire d’adhésion de Lelou Solidarity afin que je puisse obtenir ma carte de membre. Vous trouverez mes informations personnelles ci-jointes.';
+import { formatUsPhoneInput } from '@/lib/format';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { LOCALES } from '@/lib/i18n/config';
+import { getDictionary } from '@/lib/i18n';
 
 const ROW = 'grid grid-cols-2 items-end gap-3 [&>*]:min-w-0';
+// Pays / téléphone : côte à côte dès sm, empilés sur mobile (le téléphone « +1 (718) 555-0123 » a besoin de largeur)
+const ROW_RESPONSIVE = 'grid grid-cols-1 items-end gap-3 sm:grid-cols-2 [&>*]:min-w-0';
+
+// Pays proposé par défaut selon la langue (FR : États-Unis, EN : United States)
+const DEFAULT_COUNTRIES = LOCALES.map((l) => getDictionary(l).forms.defaultCountry);
 
 interface RequestState {
   firstName: string;
   lastName: string;
   city: string;
-  phone: string;
+  state: string;
+  country: string;
+  phone: string; // saisi sans l'indicatif : « (718) 555-0123 », le « +1 » est ajouté à l'envoi
   email: string;
   website: string; // champ piège anti-robots (toujours vide chez un humain)
 }
 
-const initialState: RequestState = {
+const makeInitialState = (country: string): RequestState => ({
   firstName: '',
   lastName: '',
   city: '',
+  state: '',
+  country,
   phone: '',
   email: '',
   website: '',
-};
+});
 
 export function RequestFormButton() {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<RequestState>(initialState);
+  const [form, setForm] = useState<RequestState>(() => makeInitialState(t.forms.defaultCountry));
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  // Changement de langue : si le pays est encore celui par défaut, on le traduit
+  useEffect(() => {
+    setForm((prev) =>
+      DEFAULT_COUNTRIES.includes(prev.country) ? { ...prev, country: t.forms.defaultCountry } : prev,
+    );
+  }, [locale, t.forms.defaultCountry]);
 
   function update<K extends keyof RequestState>(key: K, value: RequestState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -48,7 +64,7 @@ export function RequestFormButton() {
     setOpen(false);
     // Après un envoi réussi, on repart d'un formulaire vide à la prochaine ouverture
     if (done) {
-      setForm(initialState);
+      setForm(makeInitialState(t.forms.defaultCountry));
       setDone(false);
     }
     setError(null);
@@ -57,23 +73,28 @@ export function RequestFormButton() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Les membres résident aux États-Unis : numéro à 10 chiffres, indicatif +1 ajouté automatiquement
+    if (form.phone.replace(/\D/g, '').length !== 10) {
+      setError(t.forms.phoneInvalid);
+      return;
+    }
+
     setSending(true);
     try {
       await apiPublic('/public/form-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, phone: `+1 ${form.phone.trim()}` }),
       });
       setDone(true);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(
-          err.status === 429
-            ? 'Trop de demandes envoyées depuis cet appareil. Merci de réessayer un peu plus tard.'
-            : err.message,
+          err.status === 429 ? t.forms.request.tooMany : err.message,
         );
       } else {
-        setError('Impossible d’envoyer votre demande, vérifiez votre connexion.');
+        setError(t.forms.request.networkError);
       }
     } finally {
       setSending(false);
@@ -88,14 +109,14 @@ export function RequestFormButton() {
         className="mt-8 inline-flex items-center justify-center gap-2.5 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-ocean-700 shadow-lg shadow-ocean-900/20 ring-2 ring-[#D8B65C]/70 transition-transform hover:scale-[1.02] hover:bg-ocean-50 sm:text-base"
       >
         <Mail className="h-5 w-5 flex-shrink-0" />
-        Demander votre formulaire d&apos;adhésion
+        {t.forms.request.openButton}
       </button>
 
       <Modal
         open={open}
         onClose={close}
         size="lg"
-        title={done ? undefined : 'Demander votre formulaire d’adhésion'}
+        title={done ? undefined : t.forms.request.modalTitle}
       >
         {done ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
@@ -103,21 +124,20 @@ export function RequestFormButton() {
               <CheckCircle2 className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-extrabold tracking-tight text-ocean-800">
-              Demande envoyée !
+              {t.forms.request.sentTitle}
             </h3>
             <p className="text-sm leading-relaxed text-ocean-500">
-              L&apos;administrateur a bien reçu votre demande. Vous recevrez votre formulaire
-              d&apos;adhésion par e-mail. Pensez à vérifier vos courriers indésirables.
+              {t.forms.request.sentText}
             </p>
             <Button className="mt-2" onClick={close}>
-              Fermer
+              {t.common.close}
             </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Message type qui accompagnera les informations */}
             <blockquote className="rounded-xl border-l-4 border-[#D8B65C] bg-ocean-50/70 px-4 py-3 text-sm leading-relaxed text-ocean-700">
-              {REQUEST_MESSAGE}
+              {t.forms.request.message}
             </blockquote>
 
             {error && (
@@ -132,7 +152,7 @@ export function RequestFormButton() {
 
             <div className={ROW}>
               <Input
-                label="Prénom"
+                label={t.forms.labels.firstName}
                 name="firstName"
                 autoComplete="given-name"
                 required
@@ -141,7 +161,7 @@ export function RequestFormButton() {
                 onChange={(e) => update('firstName', e.target.value)}
               />
               <Input
-                label="Nom"
+                label={t.forms.labels.lastName}
                 name="lastName"
                 autoComplete="family-name"
                 required
@@ -152,7 +172,7 @@ export function RequestFormButton() {
             </div>
             <div className={ROW}>
               <Input
-                label="Ville de résidence"
+                label={t.forms.labels.city}
                 name="city"
                 autoComplete="address-level2"
                 required
@@ -161,18 +181,43 @@ export function RequestFormButton() {
                 onChange={(e) => update('city', e.target.value)}
               />
               <Input
-                label="Téléphone"
+                label={t.forms.labels.state}
+                name="state"
+                autoComplete="address-level1"
+                placeholder="New York"
+                required
+                maxLength={80}
+                value={form.state}
+                onChange={(e) => update('state', e.target.value)}
+              />
+            </div>
+            <div className={ROW_RESPONSIVE}>
+              <Input
+                label={t.forms.labels.country}
+                name="country"
+                autoComplete="country-name"
+                required
+                maxLength={80}
+                value={form.country}
+                onChange={(e) => update('country', e.target.value)}
+              />
+              {/* Mise en forme automatique pendant la saisie : (718) 555-0123 */}
+              <Input
+                label={t.forms.labels.phone}
                 name="phone"
                 type="tel"
-                autoComplete="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="(718) 555-0123"
                 required
-                maxLength={30}
+                maxLength={14}
+                leading="+1"
                 value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
+                onChange={(e) => update('phone', formatUsPhoneInput(e.target.value))}
               />
             </div>
             <Input
-              label="Adresse e-mail"
+              label={t.forms.labels.email}
               name="email"
               type="email"
               autoComplete="email"
@@ -185,7 +230,7 @@ export function RequestFormButton() {
             {/* Champ piège : invisible et hors de portée du clavier, seuls les robots le remplissent */}
             <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
               <label>
-                Ne pas remplir
+                {t.forms.request.honeypot}
                 <input
                   type="text"
                   name="website"
@@ -199,10 +244,10 @@ export function RequestFormButton() {
 
             <Button type="submit" size="lg" loading={sending} className="mt-1 w-full">
               {!sending && <Send className="h-4 w-4" />}
-              {sending ? 'Envoi en cours...' : 'Envoyer ma demande'}
+              {sending ? t.forms.sending : t.forms.sendRequest}
             </Button>
             <p className="text-center text-xs text-slate-500">
-              Tous les champs sont obligatoires.
+              {t.forms.allRequired}
             </p>
           </form>
         )}

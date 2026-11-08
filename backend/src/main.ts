@@ -55,7 +55,8 @@ async function bootstrap() {
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    // X-Lang : langue du visiteur (fr | en), pour les messages d'erreur et les e-mails
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Lang',
   });
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;

@@ -8,6 +8,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { generateAccessCode } from './utils/code-generator';
+import { DEFAULT_LOCALE, Locale } from '../common/i18n';
 
 @Injectable()
 export class AccessCodesService {
@@ -20,7 +21,7 @@ export class AccessCodesService {
    * Cree un nouveau code d'acces pour un membre et le lui envoie par e-mail.
    * Reessaie en cas (tres improbable) de collision sur le code genere.
    */
-  async generateAndSend(email: string) {
+  async generateAndSend(email: string, locale: Locale = DEFAULT_LOCALE) {
     let accessCode: { id: string; code: string; email: string } | null = null;
 
     for (let attempt = 0; attempt < 5 && !accessCode; attempt++) {
@@ -39,7 +40,7 @@ export class AccessCodesService {
     }
 
     try {
-      await this.mail.sendAccessCode(accessCode.email, accessCode.code);
+      await this.mail.sendAccessCode(accessCode.email, accessCode.code, locale);
     } catch (err) {
       // L'envoi a echoue : on supprime le code fantome (jamais recu par
       // personne) au lieu de le laisser trainer en base comme "En attente",

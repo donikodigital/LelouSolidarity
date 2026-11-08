@@ -9,6 +9,7 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { passwordFingerprint } from './password-fingerprint';
+import { Locale } from '../common/i18n';
 
 // Hash factice : comparé quand l'e-mail est inconnu, pour que la réponse prenne
 // le même temps qu'avec un vrai compte (on ne laisse pas deviner quels e-mails existent).
@@ -44,7 +45,7 @@ export class AuthService {
     };
   }
 
-  async requestPasswordReset(dto: ForgotPasswordDto) {
+  async requestPasswordReset(dto: ForgotPasswordDto, locale: Locale = 'fr') {
     const admin = await this.prisma.admin.findUnique({
       where: { email: dto.email.toLowerCase().trim() },
     });
@@ -62,7 +63,12 @@ export class AuthService {
       data: { resetToken: token, resetTokenExpiresAt: expiresAt },
     });
 
-    await this.mail.sendPasswordReset(admin.email, admin.name || 'Administrateur', token);
+    await this.mail.sendPasswordReset(
+      admin.email,
+      admin.name || (locale === 'en' ? 'Administrator' : 'Administrateur'),
+      token,
+      locale,
+    );
 
     return { message: genericMessage };
   }

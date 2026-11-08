@@ -1,4 +1,5 @@
 //backend/src/cards/card-pdf.ts
+// v1.4 — carte en français ou en anglais selon la langue du membre (`locale`).
 // v1.3 — pas de drapeau devant le téléphone : les drapeaux des USA et de la Guinée
 // (rouge-jaune-vert) sont placés en haut à droite, au-dessus de la pastille de statut.
 // v1.2 — recto : l'année de naissance est remplacée par le téléphone
@@ -27,6 +28,7 @@ import {
 } from './theme';
 import { LOGO_DATA_URL } from './logo-data';
 import { parsePhone } from '../common/phone';
+import { Locale } from '../common/i18n';
 
 export interface CardData {
   firstName: string;
@@ -42,9 +44,100 @@ export interface CardData {
   photo: Buffer | null; // JPEG ou PNG ; null = pictogramme à la place de la photo
   qrPng: Buffer; // QR code au format PNG
   status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
+  /** Langue des textes imprimés sur la carte (français par défaut). */
+  locale?: Locale;
 }
 
 type Doc = PDFKit.PDFDocument;
+
+// Textes imprimés sur la carte, par langue
+const CARD_TEXTS: Record<
+  Locale,
+  {
+    status: Record<CardData['status'], string>;
+    cardTitle: string;
+    memberBadge: string;
+    phone: string;
+    originCity: string;
+    originLocality: string;
+    residenceCity: string;
+    memberId: string;
+    expiresEnd: string;
+    scanPrefix: string;
+    scanBold: string;
+    scanSuffix: string;
+    pdfTitle: string;
+  }
+> = {
+  fr: {
+    status: { ACTIVE: 'ACTIF', EXPIRING_SOON: 'À RENOUVELER', EXPIRED: 'EXPIRÉ' },
+    cardTitle: 'CARTE DE MEMBRE',
+    memberBadge: 'MEMBRE ADHÉRENT',
+    phone: 'TÉLÉPHONE',
+    originCity: 'VILLE D’ORIGINE',
+    originLocality: 'LOCALITÉ D’ORIGINE',
+    residenceCity: 'VILLE DE RÉSIDENCE',
+    memberId: 'N° IDENTIFIANT',
+    expiresEnd: 'EXPIRE FIN',
+    scanPrefix: 'Scannez ce code pour ',
+    scanBold: 'vérifier l’authenticité',
+    scanSuffix: 'de cette carte de membre.',
+    pdfTitle: 'Carte de membre',
+  },
+  en: {
+    status: { ACTIVE: 'ACTIVE', EXPIRING_SOON: 'RENEW SOON', EXPIRED: 'EXPIRED' },
+    cardTitle: 'MEMBERSHIP CARD',
+    memberBadge: 'MEMBER',
+    phone: 'PHONE',
+    originCity: 'CITY OF ORIGIN',
+    originLocality: 'LOCALITY OF ORIGIN',
+    residenceCity: 'CITY OF RESIDENCE',
+    memberId: 'MEMBER ID',
+    expiresEnd: 'VALID THROUGH',
+    scanPrefix: 'Scan this code to ',
+    scanBold: 'verify the authenticity',
+    scanSuffix: 'of this membership card.',
+    pdfTitle: 'Membership card',
+  },
+  // Pular (Fuuta Jallon) — à faire relire. Les lettres ɓ/ɗ sont remplacées par b/d
+  // à l'impression (police Helvetica, voir safe()).
+  ff: {
+    status: { ACTIVE: 'E HUUWUGO', EXPIRING_SOON: 'HESƊITINA', EXPIRED: 'TIMMII' },
+    cardTitle: 'KARTE KAWTAAƊO',
+    memberBadge: 'KAWTAAƊO',
+    phone: 'TELEFON',
+    originCity: 'WURO PUƊƊORDE',
+    originLocality: 'SAARE PUƊƊORDE',
+    residenceCity: 'WURO HOƊORDE',
+    memberId: 'LIMNGAL KARTE',
+    expiresEnd: 'TIMMOTO',
+    scanPrefix: 'Wanngu QR code ngoo ngam ',
+    scanBold: 'hoolaago karte',
+    scanSuffix: 'kawtaaɗo ndee.',
+    pdfTitle: 'Karte kawtaaɗo',
+  },
+};
+
+// Les libellés passent par safe() (lettres ɓ/ɗ... absentes de Helvetica) ; résultat mis en cache.
+type CardTexts = (typeof CARD_TEXTS)[Locale];
+const SAFE_TEXTS = new Map<Locale, CardTexts>();
+function textsOf(data: CardData): CardTexts {
+  const locale = data.locale ?? 'fr';
+  let cached = SAFE_TEXTS.get(locale);
+  if (!cached) {
+    const src = CARD_TEXTS[locale];
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(src)) {
+      out[k] =
+        typeof v === 'string'
+          ? safe(v)
+          : Object.fromEntries(Object.entries(v as Record<string, string>).map(([a, b]) => [a, safe(b)]));
+    }
+    cached = out as unknown as CardTexts;
+    SAFE_TEXTS.set(locale, cached);
+  }
+  return cached;
+}
 
 const PT_PER_MM = 72 / 25.4;
 // Taille de police : « px » CSS -> unités du document (millimètres)
@@ -95,15 +188,8 @@ function safe(value: string | number): string {
   return out;
 }
 
-function statusLabel(status: CardData['status']): string {
-  switch (status) {
-    case 'ACTIVE':
-      return 'ACTIF';
-    case 'EXPIRING_SOON':
-      return 'À RENOUVELER';
-    case 'EXPIRED':
-      return 'EXPIRÉ';
-  }
+function statusLabel(data: CardData): string {
+  return textsOf(data).status[data.status];
 }
 
 function statusColor(status: CardData['status']): string {
@@ -386,8 +472,9 @@ function drawHeaderFlags(doc: Doc) {
   drawUsFlag(doc, right - guineaW - gap - usW, y, usW, h);
 }
 
-function drawStatusPill(doc: Doc, status: CardData['status']): number {
-  const label = statusLabel(status);
+function drawStatusPill(doc: Doc, data: CardData): number {
+  const status = data.status;
+  const label = statusLabel(data);
   const style: TextStyle = { font: BOLD, size: 6.2, color: '#ffffff', spacing: 0.6 };
   const textW = widthOf(doc, label, style);
   const dot = 1.5;
@@ -486,11 +573,11 @@ function drawRecto(doc: Doc, data: CardData) {
     .fillColor(goldGradient(doc, 15.9, 5.57, brandW, brandH) as unknown as string, 1)
     .text(brand, 15.9, 5.57, { lineBreak: false, characterSpacing: spacingMm(brandStyle) });
   doc.fillOpacity(1);
-  drawText(doc, 'CARTE DE MEMBRE', 15.9, 8.81, { size: 5, color: '#ffffff', alpha: 0.72, spacing: 1.5 });
+  drawText(doc, textsOf(data).cardTitle, 15.9, 8.81, { size: 5, color: '#ffffff', alpha: 0.72, spacing: 1.5 });
 
   // La puce d'empreinte se décale vers la gauche si la pastille de statut est large
   drawHeaderFlags(doc);
-  const pillX = drawStatusPill(doc, data.status);
+  const pillX = drawStatusPill(doc, data);
   drawFingerprintChip(doc, Math.min(FACE_W - 26 - 7.2, pillX - 1.5 - 7.2), 4.2, 7.2);
   drawPhotoFrame(doc, data.photo);
 
@@ -498,7 +585,7 @@ function drawRecto(doc: Doc, data: CardData) {
   const infoX = 28.5;
   const infoW = FACE_W - infoX - 4;
   let y = 15;
-  drawText(doc, 'MEMBRE ADHÉRENT', infoX, y, { font: BOLD, size: 5.4, color: t.accentGold, spacing: 1.4 });
+  drawText(doc, textsOf(data).memberBadge, infoX, y, { font: BOLD, size: 5.4, color: t.accentGold, spacing: 1.4 });
   y += px(5.4) * 1.15 + 0.7;
 
   const fullName = safe(`${data.firstName} ${data.lastName.toUpperCase()}`);
@@ -513,10 +600,10 @@ function drawRecto(doc: Doc, data: CardData) {
   // Téléphone, puis origine et résidence
   const phone = parsePhone(data.phone);
   const rows: Array<{ label: string; value: string }> = [
-    { label: 'TÉLÉPHONE', value: phone.text ? safe(phone.text) : '—' },
-    { label: 'VILLE D’ORIGINE', value: safe(data.originDistrict) || '—' },
-    { label: 'LOCALITÉ D’ORIGINE', value: safe(data.originLocality) || '—' },
-    { label: 'VILLE DE RÉSIDENCE', value: safe(`${data.city}, ${data.state}`) },
+    { label: textsOf(data).phone, value: phone.text ? safe(phone.text) : '—' },
+    { label: textsOf(data).originCity, value: safe(data.originDistrict) || '—' },
+    { label: textsOf(data).originLocality, value: safe(data.originLocality) || '—' },
+    { label: textsOf(data).residenceCity, value: safe(`${data.city}, ${data.state}`) },
   ];
   const labelStyle: TextStyle = { size: 4.9, color: '#ffffff', alpha: 0.62, spacing: 0.5 };
   const valueStyle: TextStyle = { font: BOLD, size: 6.8, color: '#ffffff' };
@@ -537,13 +624,13 @@ function drawRecto(doc: Doc, data: CardData) {
   const blockH = px(4.8) * 1.15 + 0.4 + px(8.2) * 1.15;
   const blockY = FACE_H - 11.5 + 0.25 + (11.25 - blockH) / 2;
   const kH = px(4.8) * 1.15 + 0.4;
-  const idLabel = 'N° IDENTIFIANT';
+  const idLabel = textsOf(data).memberId;
   const code = safe(data.memberCode);
   drawText(doc, idLabel, 4, blockY, kStyle);
   drawText(doc, code, 4, blockY + kH, idStyle);
   const idW = Math.max(widthOf(doc, idLabel, kStyle), widthOf(doc, code, idStyle));
   const expX = 4 + idW + 9;
-  drawText(doc, 'EXPIRE FIN', expX, blockY, kStyle);
+  drawText(doc, textsOf(data).expiresEnd, expX, blockY, kStyle);
   drawText(doc, formatMonthYear(data.expiresAt), expX, blockY + kH, expStyle);
 
   drawQr(doc, data.qrPng, FACE_W - 3.6 - 14.5, FACE_H - 3 - 14.5, 14.5, 0.4, 0.9, 1.8, 1.4);
@@ -570,7 +657,7 @@ function drawVerso(doc: Doc, data: CardData) {
   const leftTop = (usable - leftH) / 2;
   const leftCx = 5 + 31 / 2;
   drawCircleImage(doc, leftCx, leftTop + 12, 24, 0.4);
-  const cap = 'CARTE DE MEMBRE';
+  const cap = textsOf(data).cardTitle;
   drawText(doc, cap, leftCx - widthOf(doc, cap, captionStyle) / 2, leftTop + 24 + 3, captionStyle);
 
   // Séparateur vertical dégradé
@@ -596,9 +683,9 @@ function drawVerso(doc: Doc, data: CardData) {
 
   const regular: TextStyle = { size: 5.4, color: '#ffffff', alpha: 0.88, spacing: 0.2 };
   const bold: TextStyle = { font: BOLD, size: 5.4, color: t.accentGoldLight, spacing: 0.2 };
-  const p1 = 'Scannez ce code pour ';
-  const p2 = 'vérifier l’authenticité';
-  const p3 = 'de cette carte de membre.';
+  const p1 = textsOf(data).scanPrefix;
+  const p2 = textsOf(data).scanBold;
+  const p3 = textsOf(data).scanSuffix;
   const w1 = widthOf(doc, p1, regular);
   const w2 = widthOf(doc, p2, bold);
   const textY = rightTop + 27 + 2.4;
@@ -612,7 +699,7 @@ function drawVerso(doc: Doc, data: CardData) {
   const codeStyle: TextStyle = { font: BOLD, size: 6.2, color: '#ffffff', spacing: 1 };
   const expStyle: TextStyle = { font: BOLD, size: 6.2, color: t.accentGoldLight, spacing: 1 };
   const code = `${safe(data.memberCode)} · `;
-  const exp = `Expire fin ${formatMonthYear(data.expiresAt)}`;
+  const exp = `${textsOf(data).expiresEnd.charAt(0)}${textsOf(data).expiresEnd.slice(1).toLowerCase()} ${formatMonthYear(data.expiresAt)}`;
   const wCode = widthOf(doc, code, codeStyle);
   const wExp = widthOf(doc, exp, expStyle);
   const textTop = FACE_H - 9 + 0.25 + (8.75 - px(6.2) * 1.15) / 2;
@@ -648,7 +735,7 @@ export function renderMemberCardPdf(data: CardData): Promise<Buffer> {
       const doc = new PDFDocument({
         size: [PAGE_WIDTH_MM * PT_PER_MM, PAGE_HEIGHT_MM * PT_PER_MM],
         margin: 0,
-        info: { Title: `Carte de membre ${safe(data.memberCode)}`, Author: safe(t.associationName) },
+        info: { Title: `${textsOf(data).pdfTitle} ${safe(data.memberCode)}`, Author: safe(t.associationName) },
       });
 
       const chunks: Buffer[] = [];

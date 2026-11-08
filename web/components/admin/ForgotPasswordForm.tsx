@@ -10,8 +10,10 @@ import { Button } from '@/components/ui/Button';
 import { BrandMark } from '@/components/layout/BrandMark';
 import { apiPublic, ApiError } from '@/lib/api';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 export function ForgotPasswordForm() {
+  const ta = useT().admin.auth;
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function ForgotPasswordForm() {
       });
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Une erreur est survenue.');
+      setError(err instanceof ApiError ? err.message : ta.genericError);
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ export function ForgotPasswordForm() {
     <Card className="w-full max-w-sm p-8">
       <div className="flex flex-col items-center text-center">
         <BrandMark onDark={false} />
-        <h1 className="mt-4 text-lg font-bold text-ocean-800">Mot de passe oublie</h1>
+        <h1 className="mt-4 text-lg font-bold text-ocean-800">{ta.forgotTitle}</h1>
         <p className="mt-1 text-sm text-ocean-400">{ASSOCIATION_NAME}</p>
       </div>
 
@@ -49,10 +51,10 @@ export function ForgotPasswordForm() {
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <p className="text-sm text-ocean-600">
-            Si un compte existe avec cette adresse, un lien de reinitialisation vient de lui etre envoye.
+            {ta.forgotSent}
           </p>
           <Link href="/admin/login" className="mt-2 text-sm font-semibold text-ocean-600 hover:text-ocean-800">
-            Retour a la connexion
+            {ta.backToLogin}
           </Link>
         </div>
       ) : (
@@ -64,10 +66,10 @@ export function ForgotPasswordForm() {
             </div>
           )}
           <p className="text-sm text-ocean-500">
-            Indiquez votre adresse e-mail, nous vous enverrons un lien pour choisir un nouveau mot de passe.
+            {ta.forgotIntro}
           </p>
           <Input
-            label="Adresse e-mail"
+            label={ta.email}
             type="email"
             name="email"
             autoComplete="username"
@@ -77,14 +79,14 @@ export function ForgotPasswordForm() {
           />
           <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
             <Mail className="h-4 w-4" />
-            Envoyer le lien
+            {ta.sendLink}
           </Button>
           <Link
             href="/admin/login"
             className="mt-1 flex items-center justify-center gap-1.5 text-sm font-medium text-ocean-500 hover:text-ocean-700"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Retour a la connexion
+            {ta.backToLogin}
           </Link>
         </form>
       )}

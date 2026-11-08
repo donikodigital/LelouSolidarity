@@ -12,8 +12,11 @@ import { BrandMark } from '@/components/layout/BrandMark';
 import { apiPublic, ApiError } from '@/lib/api';
 import { saveSession } from '@/lib/auth';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 export function LoginForm() {
+  const t = useT();
+  const ta = t.admin.auth;
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +36,7 @@ export function LoginForm() {
       saveSession(data);
       router.replace('/admin');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Connexion impossible.');
+      setError(err instanceof ApiError ? err.message : ta.loginFailed);
     } finally {
       setLoading(false);
     }
@@ -43,7 +46,7 @@ export function LoginForm() {
     <Card className="w-full max-w-sm p-8">
       <div className="flex flex-col items-center text-center">
         <BrandMark onDark={false} />
-        <h1 className="mt-4 text-lg font-bold text-ocean-800">Espace administrateur</h1>
+        <h1 className="mt-4 text-lg font-bold text-ocean-800">{t.admin.adminSpace}</h1>
         <p className="mt-1 text-sm text-ocean-400">{ASSOCIATION_NAME}</p>
       </div>
 
@@ -55,7 +58,7 @@ export function LoginForm() {
           </div>
         )}
         <Input
-          label="Adresse e-mail"
+          label={ta.email}
           type="email"
           name="email"
           autoComplete="username"
@@ -64,7 +67,7 @@ export function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
         />
         <Input
-          label="Mot de passe"
+          label={ta.password}
           type="password"
           name="password"
           autoComplete="current-password"
@@ -74,12 +77,12 @@ export function LoginForm() {
         />
         <div className="flex justify-end -mt-2">
           <Link href="/admin/forgot-password" className="text-xs font-medium text-ocean-500 hover:text-ocean-700">
-            Mot de passe oublié ?
+            {ta.forgotLink}
           </Link>
         </div>
         <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
           <LogIn className="h-4 w-4" />
-          Se connecter
+          {ta.login}
         </Button>
       </form>
     </Card>

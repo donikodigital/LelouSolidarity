@@ -16,9 +16,15 @@ import { AccessCodeModal } from '@/components/admin/AccessCodeModal';
 import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { AccessCodeRecord } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
+import { LOCALES, LOCALE_META, type Locale } from '@/lib/i18n/config';
+import { Flag } from '@/components/layout/LanguageSwitcher';
 
 export default function CodesPage() {
   const { session } = useSession();
+  const { t, locale } = useI18n();
+  const tc = t.admin.codes;
   const [codes, setCodes] = useState<AccessCodeRecord[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -27,6 +33,9 @@ export default function CodesPage() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  // Langue de l'e-mail du code : par défaut celle de l'interface, modifiable
+  const [mailLocaleChoice, setMailLocaleChoice] = useState<Locale | null>(null);
+  const mailLocale = mailLocaleChoice ?? locale;
 
   const [selected, setSelected] = useState<AccessCodeRecord | null>(null);
 
@@ -37,11 +46,11 @@ export default function CodesPage() {
       const data = await apiAdmin('/admin/access-codes', session.accessToken);
       setCodes(data);
     } catch {
-      setLoadError('Impossible de charger les codes d’accès.');
+      setLoadError(tc.loadError);
     } finally {
       setLoading(false);
     }
-  }, [session.accessToken]);
+  }, [session.accessToken, tc.loadError]);
 
   useEffect(() => {
     load();
@@ -55,13 +64,13 @@ export default function CodesPage() {
     try {
       await apiAdmin('/admin/access-codes', session.accessToken, {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, locale: mailLocale }),
       });
-      setSendSuccess(`Code envoyé à ${email}.`);
+      setSendSuccess(fmt(tc.sentTo, { email }));
       setEmail('');
       load();
     } catch (err) {
-      setSendError(err instanceof ApiError ? err.message : 'Échec de l’envoi du code.');
+      setSendError(err instanceof ApiError ? err.message : tc.sendFailed);
     } finally {
       setSending(false);
     }
@@ -71,18 +80,17 @@ export default function CodesPage() {
     <div className="flex w-full min-w-0 flex-col gap-6">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-ocean-800 sm:text-3xl">
-          Codes d&apos;accès
+          {tc.title}
         </h1>
         <p className="mt-1 text-sm text-ocean-400">
-          Un code personnel doit être envoyé à chaque futur membre avant qu&apos;il puisse
-          remplir le formulaire.
+          {tc.subtitle}
         </p>
       </div>
 
       <Card className="p-4 sm:p-6">
         <div className="mb-4 flex items-center gap-2 text-ocean-700">
           <KeyRound className="h-4 w-4" />
-          <h2 className="text-sm font-bold uppercase tracking-wide">Envoyer un nouveau code</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wide">{tc.sendNew}</h2>
         </div>
 
         {sendError && (
@@ -100,7 +108,7 @@ export default function CodesPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <Input
-              label="Adresse e-mail du membre"
+              label={tc.memberEmail}
               type="email"
               required
               value={email}
@@ -110,14 +118,37 @@ export default function CodesPage() {
           </div>
           <Button type="submit" loading={sending}>
             <Send className="h-4 w-4" />
-            Envoyer le code
+            {tc.sendCode}
           </Button>
         </form>
+
+        {/* Langue de l'e-mail envoyé au futur membre */}
+        <div className="mt-4 flex flex-wrap items-center gap-2.5">
+          <span className="text-xs font-semibold text-ocean-500">{tc.emailLanguage}</span>
+          <div role="group" aria-label={tc.emailLanguage} className="inline-flex gap-1 rounded-full bg-ocean-50 p-1">
+            {LOCALES.map((code) => (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={mailLocale === code}
+                onClick={() => setMailLocaleChoice(code)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                  mailLocale === code
+                    ? 'bg-white text-ocean-800 shadow-sm'
+                    : 'text-ocean-500 hover:text-ocean-700'
+                }`}
+              >
+                <Flag locale={code} className="h-3 w-[18px]" />
+                {LOCALE_META[code].short}
+              </button>
+            ))}
+          </div>
+        </div>
       </Card>
 
       <div className="flex min-w-0 flex-col gap-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-ocean-400">
-          Codes déjà envoyés
+          {tc.alreadySent}
         </h2>
 
         {loading && (
@@ -135,8 +166,8 @@ export default function CodesPage() {
         {!loading && codes && codes.length === 0 && (
           <EmptyState
             icon={<KeyRound className="h-8 w-8" />}
-            title="Aucun code envoyé pour l'instant"
-            description="Les codes que vous envoyez apparaîtront ici avec leur statut."
+            title={tc.emptyTitle}
+            description={tc.emptyText}
           />
         )}
 

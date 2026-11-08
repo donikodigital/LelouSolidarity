@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiAdmin } from '../api';
 import { FormRequest } from '../types';
 import { useSession } from '@/components/admin/SessionProvider';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 export function useFormRequests() {
   const { session } = useSession();
+  const { t } = useI18n();
   const [requests, setRequests] = useState<FormRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,11 +21,11 @@ export function useFormRequests() {
       const data = await apiAdmin('/admin/form-requests', session.accessToken);
       setRequests(data);
     } catch {
-      setError('Impossible de charger les demandes.');
+      setError(t.admin.requests.loadError);
     } finally {
       setLoading(false);
     }
-  }, [session.accessToken]);
+  }, [session.accessToken, t]);
 
   useEffect(() => {
     reload();

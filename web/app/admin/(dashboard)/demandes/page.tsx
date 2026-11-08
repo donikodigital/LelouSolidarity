@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock3,
   Inbox,
+  Languages,
   Mail,
   MapPin,
   Phone,
@@ -24,14 +25,13 @@ import { useAdminData } from '@/components/admin/NotificationsProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { FormRequest } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
+import { LOCALE_META, isLocale } from '@/lib/i18n/config';
 
 type FilterKey = 'TODO' | 'DONE' | 'ALL';
 
-const filters: { key: FilterKey; label: string }[] = [
-  { key: 'TODO', label: 'À traiter' },
-  { key: 'DONE', label: 'Traitées' },
-  { key: 'ALL', label: 'Toutes' },
-];
+const FILTER_KEYS: FilterKey[] = ['TODO', 'DONE', 'ALL'];
 
 type Mode = 'view' | 'confirm-send' | 'confirm-delete';
 type Action = 'send' | 'handled' | 'delete';
@@ -44,6 +44,8 @@ function RequestCard({
   onChanged: (notice?: string) => void;
 }) {
   const { session } = useSession();
+  const { t, locale } = useI18n();
+  const tr = t.admin.requests;
   const [mode, setMode] = useState<Mode>('view');
   const [busy, setBusy] = useState<Action | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +63,9 @@ function RequestCard({
         await apiAdmin(base, session.accessToken, { method: 'DELETE' });
       }
       setMode('view');
-      onChanged(action === 'send' ? `Formulaire envoyé à ${request.email}.` : undefined);
+      onChanged(action === 'send' ? fmt(tr.formSentTo, { email: request.email }) : undefined);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible, merci de réessayer.');
+      setError(err instanceof ApiError ? err.message : tr.actionFailed);
     } finally {
       setBusy(null);
     }
@@ -77,7 +79,7 @@ function RequestCard({
           <p className="break-words text-base font-bold text-ocean-800">
             {request.firstName} {request.lastName.toUpperCase()}
           </p>
-          <p className="text-xs text-ocean-400">Reçue le {formatDate(request.createdAt)}</p>
+          <p className="text-xs text-ocean-400">{fmt(tr.receivedOn, { date: formatDate(request.createdAt, locale) })}</p>
         </div>
         <span
           className={clsx(
@@ -90,7 +92,7 @@ function RequestCard({
           ) : (
             <Clock3 className="h-3.5 w-3.5" />
           )}
-          {request.handled ? 'Traitée' : 'À traiter'}
+          {request.handled ? tr.handled : tr.todo}
         </span>
       </div>
 
@@ -103,7 +105,9 @@ function RequestCard({
       <ul className="flex flex-col gap-2 text-sm text-ocean-700">
         <li className="flex items-center gap-2.5">
           <MapPin className="h-4 w-4 flex-shrink-0 text-ocean-400" />
-          <span className="min-w-0 break-words">{request.city}</span>
+          <span className="min-w-0 break-words">
+            {[request.city, request.state, request.country].filter(Boolean).join(', ')}
+          </span>
         </li>
         <li className="flex items-center gap-2.5">
           <Mail className="h-4 w-4 flex-shrink-0 text-ocean-400" />
@@ -117,6 +121,14 @@ function RequestCard({
             {request.phone}
           </a>
         </li>
+        {request.locale && isLocale(request.locale) && (
+          <li className="flex items-center gap-2.5">
+            <Languages className="h-4 w-4 flex-shrink-0 text-ocean-400" />
+            <span className="min-w-0 break-words">
+              {fmt(tr.language, { lang: LOCALE_META[request.locale].label })}
+            </span>
+          </li>
+        )}
       </ul>
 
       {error && (
@@ -131,7 +143,7 @@ function RequestCard({
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => setMode('confirm-send')} disabled={busy !== null}>
             <Send className="h-4 w-4" />
-            {request.handled ? 'Renvoyer le formulaire' : 'Envoyer le formulaire'}
+            {request.handled ? tr.resendForm : tr.sendForm}
           </Button>
           {!request.handled && (
             <Button
@@ -141,7 +153,7 @@ function RequestCard({
               disabled={busy !== null}
               onClick={() => run('handled')}
             >
-              <CheckCircle2 className="h-4 w-4" /> Marquer comme traitée
+              <CheckCircle2 className="h-4 w-4" /> {tr.markHandled}
             </Button>
           )}
           <Button
@@ -150,7 +162,7 @@ function RequestCard({
             disabled={busy !== null}
             onClick={() => setMode('confirm-delete')}
           >
-            <Trash2 className="h-4 w-4" /> Supprimer
+            <Trash2 className="h-4 w-4" /> {tr.remove}
           </Button>
         </div>
       )}
@@ -158,19 +170,23 @@ function RequestCard({
       {mode === 'confirm-send' && (
         <div className="flex flex-col gap-3 rounded-xl bg-ocean-50 p-4">
           <p className="break-words text-sm font-medium text-ocean-700">
-            Envoyer un lien d&apos;accès au formulaire à{' '}
-            <span className="font-bold">{request.email}</span> ?
+            {fmt(tr.confirmSend, { email: '\u0000' })
+              .split('\u0000')
+              .flatMap((part, i, arr) =>
+                i < arr.length - 1
+                  ? [part, <span key="email" className="font-bold">{request.email}</span>]
+                  : [part],
+              )}
           </p>
           <p className="text-xs text-ocean-500">
-            Le formulaire s&apos;ouvrira avec le nom, le prénom, la ville, le téléphone et l&apos;e-mail
-            de cette demande déjà remplis et verrouillés.
+            {tr.confirmSendNote}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => setMode('view')}>
-              Annuler
+              {tr.cancel}
             </Button>
             <Button size="sm" loading={busy === 'send'} onClick={() => run('send')}>
-              Oui, envoyer
+              {tr.yesSend}
             </Button>
           </div>
         </div>
@@ -179,11 +195,11 @@ function RequestCard({
       {mode === 'confirm-delete' && (
         <div className="flex flex-col gap-3 rounded-xl bg-red-50 p-4">
           <p className="text-sm font-medium text-red-700">
-            Supprimer définitivement cette demande ? Cette action est irréversible.
+            {tr.confirmDelete}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => setMode('view')}>
-              Annuler
+              {tr.cancel}
             </Button>
             <Button
               variant="danger-solid"
@@ -191,7 +207,7 @@ function RequestCard({
               loading={busy === 'delete'}
               onClick={() => run('delete')}
             >
-              Oui, supprimer
+              {tr.yesDelete}
             </Button>
           </div>
         </div>
@@ -201,6 +217,8 @@ function RequestCard({
 }
 
 export default function DemandesPage() {
+  const { t } = useI18n();
+  const tr = t.admin.requests;
   const { requests, loading, error, reload } = useFormRequests();
   const { refresh } = useAdminData(); // met à jour les pastilles (barre du bas, cloche)
   const [active, setActive] = useState<FilterKey>('TODO');
@@ -224,26 +242,26 @@ export default function DemandesPage() {
     <div className="flex w-full min-w-0 flex-col gap-6">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-ocean-800 sm:text-3xl">
-          Demandes de formulaire
+          {tr.title}
         </h1>
         <p className="mt-1 text-sm text-ocean-400">
-          Demandes envoyées par les futurs membres depuis la page d&apos;accueil.
+          {tr.subtitle}
         </p>
       </div>
 
       <div
         role="group"
-        aria-label="Filtrer les demandes"
+        aria-label={tr.filterAria}
         className="grid grid-cols-3 gap-1.5 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200"
       >
-        {filters.map((f) => {
-          const isActive = active === f.key;
+        {FILTER_KEYS.map((key) => {
+          const isActive = active === key;
           return (
             <button
-              key={f.key}
+              key={key}
               type="button"
               aria-pressed={isActive}
-              onClick={() => setActive(f.key)}
+              onClick={() => setActive(key)}
               className={clsx(
                 'rounded-xl px-2 py-2.5 text-center text-[13px] font-semibold leading-tight transition-all sm:text-sm',
                 isActive
@@ -251,7 +269,7 @@ export default function DemandesPage() {
                   : 'text-ocean-600 hover:bg-ocean-50',
               )}
             >
-              {f.label}
+              {tr.filters[key]}
             </button>
           );
         })}
@@ -279,8 +297,8 @@ export default function DemandesPage() {
       {requests && !error && filtered.length === 0 && (
         <EmptyState
           icon={<Inbox className="h-8 w-8" />}
-          title={active === 'TODO' ? 'Aucune demande à traiter' : 'Aucune demande dans cette catégorie'}
-          description="Les demandes envoyées depuis la page d’accueil apparaîtront ici."
+          title={active === 'TODO' ? tr.emptyTodo : tr.emptyOther}
+          description={tr.emptyText}
         />
       )}
 

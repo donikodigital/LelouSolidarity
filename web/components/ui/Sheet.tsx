@@ -4,6 +4,7 @@
 import { ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 interface SheetProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface SheetProps {
  * s'affiche en pop-up en haut à droite sur grand écran.
  */
 export function Sheet({ open, onClose, title, children }: SheetProps) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -54,7 +56,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t.common.close}
             className="rounded-full p-1.5 text-ocean-400 transition hover:bg-ocean-50 hover:text-ocean-700"
           >
             <X className="h-5 w-5" />

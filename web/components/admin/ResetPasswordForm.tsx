@@ -11,8 +11,10 @@ import { Button } from '@/components/ui/Button';
 import { BrandMark } from '@/components/layout/BrandMark';
 import { apiPublic, ApiError } from '@/lib/api';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 export function ResetPasswordForm({ token }: { token: string }) {
+  const ta = useT().admin.auth;
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -25,7 +27,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     setError(null);
 
     if (password !== confirm) {
-      setError('Les deux mots de passe ne correspondent pas.');
+      setError(ta.mismatch);
       return;
     }
 
@@ -39,7 +41,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       setDone(true);
       setTimeout(() => router.replace('/admin/login'), 2000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Une erreur est survenue.');
+      setError(err instanceof ApiError ? err.message : ta.genericError);
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     <Card className="w-full max-w-sm p-8">
       <div className="flex flex-col items-center text-center">
         <BrandMark onDark={false} />
-        <h1 className="mt-4 text-lg font-bold text-ocean-800">Nouveau mot de passe</h1>
+        <h1 className="mt-4 text-lg font-bold text-ocean-800">{ta.resetTitle}</h1>
         <p className="mt-1 text-sm text-ocean-400">{ASSOCIATION_NAME}</p>
       </div>
 
@@ -58,7 +60,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-6 w-6" />
           </div>
-          <p className="text-sm text-ocean-600">Mot de passe mis a jour. Redirection vers la connexion...</p>
+          <p className="text-sm text-ocean-600">{ta.resetDone}</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
@@ -69,7 +71,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             </div>
           )}
           <Input
-            label="Nouveau mot de passe"
+            label={ta.newPassword}
             type="password"
             name="password"
             autoComplete="new-password"
@@ -79,7 +81,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             onChange={(e) => setPassword(e.target.value)}
           />
           <Input
-            label="Confirmer le mot de passe"
+            label={ta.confirmPassword}
             type="password"
             name="confirm"
             autoComplete="new-password"
@@ -90,10 +92,10 @@ export function ResetPasswordForm({ token }: { token: string }) {
           />
           <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
             <KeyRound className="h-4 w-4" />
-            Reinitialiser le mot de passe
+            {ta.resetButton}
           </Button>
           <Link href="/admin/login" className="mt-1 text-center text-sm font-medium text-ocean-500 hover:text-ocean-700">
-            Retour a la connexion
+            {ta.backToLogin}
           </Link>
         </form>
       )}

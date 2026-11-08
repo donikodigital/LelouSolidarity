@@ -22,6 +22,7 @@ import { MembersService } from './members.service';
 import { SubmitMemberDto } from './dto/submit-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { ListMembersQueryDto } from './dto/list-members-query.dto';
+import { Lang, Locale } from '../common/i18n';
 
 @Controller()
 export class MembersController {
@@ -46,12 +47,13 @@ export class MembersController {
   )
   submit(
     @Body() dto: SubmitMemberDto,
+    @Lang() lang: Locale,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
     if (!photo) {
       throw new BadRequestException('La photo d’identité est obligatoire.');
     }
-    return this.members.submit(dto, photo);
+    return this.members.submit(dto, photo, lang);
   }
 
   // --- Espace administrateur ---

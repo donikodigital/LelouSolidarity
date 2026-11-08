@@ -4,11 +4,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { AccessCodesService } from '../access-codes/access-codes.service';
 import { CreateFormRequestDto } from './dto/create-form-request.dto';
+import { normalizePhone } from '../common/phone';
+import { Locale, parseLocale } from '../common/i18n';
 
 // Message type enregistré avec chaque demande (le membre ne peut pas le modifier :
 // il est fixé côté serveur et affiché tel quel à l'administrateur).
-export const FORM_REQUEST_MESSAGE =
-  'Bonjour, je me permets de vous demander de m’envoyer mon formulaire d’adhésion de Lelou Solidarity afin que je puisse obtenir ma carte de membre. Vous trouverez mes informations personnelles ci-jointes.';
+// Le texte est enregistré dans la langue choisie par le demandeur.
+export const FORM_REQUEST_MESSAGES: Record<Locale, string> = {
+  fr: 'Bonjour, je me permets de vous demander de m’envoyer mon formulaire d’adhésion de Lelou Solidarity afin que je puisse obtenir ma carte de membre. Vous trouverez mes informations personnelles ci-jointes.',
+  en: 'Hello, I kindly ask you to send me my Lelou Solidarity membership form so that I can obtain my membership card. You will find my personal information attached.',
+  // Pular — à faire relire (enregistré tel quel et lu par les administrateurs)
+  ff: 'Assalaamu alaykum, mi ƴami on neldu mi formulaire naatugo e Lelou Solidarity, ngam mi heɓa karte am kawtaaɗo. Ko mi winndi ɗon e ɗoo.',
+};
 
 @Injectable()
 export class FormRequestsService {
@@ -25,7 +32,7 @@ export class FormRequestsService {
    * tous les administrateurs par e-mail. L'échec de l'e-mail n'est pas fatal :
    * la demande reste visible dans l'espace admin.
    */
-  async create(dto: CreateFormRequestDto): Promise<{ ok: true }> {
+  async create(dto: CreateFormRequestDto, locale: Locale = 'fr'): Promise<{ ok: true }> {
     // Champ piège rempli : c'est un robot. On répond « ok » sans rien enregistrer.
     if (dto.website && dto.website.trim() !== '') {
       this.logger.warn('Demande de formulaire ignorée (champ piège rempli).');
@@ -47,9 +54,13 @@ export class FormRequestsService {
         firstName: dto.firstName.trim(),
         lastName: dto.lastName.trim(),
         city: dto.city.trim(),
+        state: dto.state.trim(),
+        country: dto.country.trim(),
         email,
-        phone: dto.phone.trim(),
-        message: FORM_REQUEST_MESSAGE,
+        // « +1 (718) 555-0123 » pour un numéro américain, comme pour les membres
+        phone: normalizePhone(dto.phone),
+        message: FORM_REQUEST_MESSAGES[locale],
+        locale,
       },
     });
 
@@ -76,14 +87,15 @@ export class FormRequestsService {
    * Envoie au membre un lien d'accès au formulaire (même mécanisme que
    * « Envoyer un nouveau code ») puis marque la demande comme traitée.
    * Le code créé est rattaché à la demande : à l'ouverture du lien, le formulaire
-   * reprend et verrouille nom, prénom, ville, téléphone et e-mail de la demande.
+   * reprend et verrouille nom, prénom, ville, état, pays, téléphone et e-mail de la demande.
    * Si l'envoi échoue, l'erreur remonte et la demande reste « à traiter ».
    */
   async sendForm(id: string) {
     const request = await this.findOneOrThrow(id);
     const previousCodeId = request.accessCodeId;
 
-    const sent = await this.accessCodes.generateAndSend(request.email);
+    // L'e-mail du formulaire part dans la langue choisie par le demandeur
+    const sent = await this.accessCodes.generateAndSend(request.email, parseLocale(request.locale));
 
     const updated = await this.prisma.formRequest.update({
       where: { id },

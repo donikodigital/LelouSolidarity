@@ -23,10 +23,14 @@ import { StatCard } from '@/components/admin/StatCard';
 import { MemberListCard } from '@/components/admin/MemberListCard';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 export default function AdminDashboardPage() {
   const { members, loading, error, requestsToHandle } = useAdminData();
   const { session } = useSession();
+  const { t, intl } = useI18n();
+  const td = t.admin.dashboard;
 
   const counts = useMemo(() => {
     const list = members || [];
@@ -45,13 +49,13 @@ export default function AdminDashboardPage() {
   );
 
   const today = useMemo(() => {
-    const label = new Date().toLocaleDateString('fr-FR', {
+    const label = new Date().toLocaleDateString(intl, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
     });
     return label.charAt(0).toUpperCase() + label.slice(1);
-  }, []);
+  }, [intl]);
 
   const firstName = session.admin.name?.trim().split(/\s+/)[0];
 
@@ -65,9 +69,9 @@ export default function AdminDashboardPage() {
         <div className="relative">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#F3E2A9]">{today}</p>
           <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight sm:text-3xl">
-            {firstName ? `Bonjour, ${firstName}` : 'Bonjour'}
+            {firstName ? fmt(td.hello, { name: firstName }) : td.helloNoName}
           </h1>
-          <p className="mt-1 text-sm text-ocean-100">Vue d&apos;ensemble des membres et des cartes.</p>
+          <p className="mt-1 text-sm text-ocean-100">{td.overview}</p>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Link
@@ -78,7 +82,7 @@ export default function AdminDashboardPage() {
               <span className="min-w-0">
                 <span className="block text-xl font-extrabold leading-none">{counts.total}</span>
                 <span className="mt-1 block truncate text-[11px] font-medium text-ocean-100">
-                  Membres enregistrés
+                  {td.registeredMembers}
                 </span>
               </span>
             </Link>
@@ -95,7 +99,7 @@ export default function AdminDashboardPage() {
               <span className="min-w-0">
                 <span className="block text-xl font-extrabold leading-none">{requestsToHandle}</span>
                 <span className="mt-1 block truncate text-[11px] font-medium text-ocean-100">
-                  Formulaires à envoyer
+                  {td.formsToSend}
                 </span>
               </span>
             </Link>
@@ -118,7 +122,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
               icon={Clock3}
-              label="Demandes en attente"
+              label={td.pendingRequests}
               value={counts.pending}
               tone="amber"
               href="/admin/membres"
@@ -126,7 +130,7 @@ export default function AdminDashboardPage() {
             />
             <StatCard
               icon={CheckCircle2}
-              label="Cartes actives"
+              label={td.activeCards}
               value={counts.active}
               tone="emerald"
               href="/admin/membres"
@@ -134,7 +138,7 @@ export default function AdminDashboardPage() {
             />
             <StatCard
               icon={AlertTriangle}
-              label="À renouveler"
+              label={td.toRenew}
               value={counts.expiringSoon}
               tone="amber"
               href="/admin/membres"
@@ -142,7 +146,7 @@ export default function AdminDashboardPage() {
             />
             <StatCard
               icon={XCircle}
-              label="Cartes expirées"
+              label={td.expiredCards}
               value={counts.expired}
               tone="red"
               href="/admin/membres"
@@ -154,13 +158,13 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ocean-400">
                 <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[#F3E2A9] to-[#9A7B2F]" />
-                Adhésions à traiter
+                {td.toProcess}
               </h2>
               <Link
                 href="/admin/membres"
                 className="group inline-flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-ocean-600 hover:text-ocean-700"
               >
-                Voir tout
+                {td.seeAll}
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
@@ -168,8 +172,8 @@ export default function AdminDashboardPage() {
             {recentPending.length === 0 ? (
               <EmptyState
                 icon={<CheckCircle2 className="h-8 w-8" />}
-                title="Aucune demande en attente"
-                description="Toutes les demandes reçues ont été traitées."
+                title={td.nonePending}
+                description={td.nonePendingText}
               />
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 [&>*]:min-w-0">

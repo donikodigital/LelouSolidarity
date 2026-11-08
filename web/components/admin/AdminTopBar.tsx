@@ -9,6 +9,9 @@ import { ASSOCIATION_NAME } from '@/lib/constants';
 import { useAdminData } from './NotificationsProvider';
 import { NotificationsSheet } from './NotificationsSheet';
 import { ProfileSheet } from './ProfileSheet';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 function BellButton({
   count,
@@ -19,11 +22,16 @@ function BellButton({
   onClick: () => void;
   tone: 'dark' | 'light';
 }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={count > 0 ? `Notifications (${count} non lues)` : 'Notifications'}
+      aria-label={
+        count > 0
+          ? fmt(t.admin.topbar.notificationsUnread, { n: count })
+          : t.admin.topbar.notifications
+      }
       className={clsx(
         'relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all duration-200 active:scale-90',
         tone === 'dark'
@@ -49,6 +57,7 @@ function BellButton({
  * Sur grand écran (barre latérale visible), seule la cloche reste, alignée à droite.
  */
 export function AdminTopBar() {
+  const { t } = useI18n();
   const { notifications, unreadCount, seenAt, markAllRead } = useAdminData();
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -72,7 +81,7 @@ export function AdminTopBar() {
           <button
             type="button"
             onClick={() => setProfileOpen(true)}
-            aria-label="Ouvrir mon profil"
+            aria-label={t.admin.topbar.openProfile}
             className="flex min-w-0 items-center gap-3 rounded-2xl text-left transition-transform active:scale-95"
           >
             <Logo size={42} className="flex-shrink-0 ring-2 ring-[#D8B65C]" />
@@ -81,16 +90,20 @@ export function AdminTopBar() {
                 {ASSOCIATION_NAME}
               </span>
               <span className="block text-[11px] font-medium text-ocean-100/80">
-                Espace administrateur
+                {t.admin.adminSpace}
               </span>
             </span>
           </button>
-          <BellButton count={unreadCount} onClick={openNotifications} tone="dark" />
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <LanguageSwitcher align="right" />
+            <BellButton count={unreadCount} onClick={openNotifications} tone="dark" />
+          </div>
         </div>
       </header>
 
       {/* Grand écran */}
       <div className="hidden items-center justify-end gap-3 px-8 pt-6 lg:flex">
+        <LanguageSwitcher align="right" className="rounded-full ring-1 ring-ocean-100" />
         <BellButton count={unreadCount} onClick={openNotifications} tone="light" />
       </div>
 

@@ -1,4 +1,5 @@
 //web/app/verify/[token]/page.tsx
+// v1.4 — textes et dates en FR/EN (langue du visiteur : cookie « lang » ou langue du navigateur).
 // v1.3 — libellés alignés sur la carte : Ville d'origine, Localité d'origine, Ville de résidence.
 // v1.2 — affiche la photo du membre (cadre or) au-dessus du statut, pour que la
 // personne qui contrôle compare le visage du porteur avec la photo enregistrée.
@@ -13,6 +14,9 @@ import { Card } from '@/components/ui/Card';
 import { MemberPhoto } from '@/components/ui/MemberPhoto';
 import { formatDate } from '@/lib/format';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { fmt } from '@/lib/i18n/pair';
+import { getT } from '@/lib/i18n/server';
 import { VerifyResult, CardStatus } from '@/lib/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -50,47 +54,31 @@ async function fetchVerification(token: string): Promise<Lookup> {
 
 const statusConfig: Record<
   CardStatus,
-  { icon: typeof CheckCircle2; label: string; bg: string; text: string }
+  { icon: typeof CheckCircle2; bg: string; text: string }
 > = {
-  ACTIVE: {
-    icon: CheckCircle2,
-    label: 'Carte active',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-600',
-  },
-  EXPIRING_SOON: {
-    icon: AlertTriangle,
-    label: 'À renouveler prochainement',
-    bg: 'bg-amber-50',
-    text: 'text-amber-600',
-  },
-  EXPIRED: {
-    icon: XCircle,
-    label: 'Carte expirée',
-    bg: 'bg-red-50',
-    text: 'text-red-600',
-  },
-  NONE: {
-    icon: HelpCircle,
-    label: 'Aucune carte',
-    bg: 'bg-slate-100',
-    text: 'text-slate-500',
-  },
+  ACTIVE: { icon: CheckCircle2, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  EXPIRING_SOON: { icon: AlertTriangle, bg: 'bg-amber-50', text: 'text-amber-600' },
+  EXPIRED: { icon: XCircle, bg: 'bg-red-50', text: 'text-red-600' },
+  NONE: { icon: HelpCircle, bg: 'bg-slate-100', text: 'text-slate-500' },
 };
 
 // Next.js 15 : `params` est une promesse
 export default async function VerifyPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const lookup = await fetchVerification(token);
+  const { t, locale } = await getT();
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-gradient-to-b from-ocean-600 to-ocean-500 px-6 py-14">
+    <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-ocean-600 to-ocean-500 px-6 py-14">
+      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
+        <LanguageSwitcher align="left" />
+      </div>
       <div className="flex flex-col items-center text-white">
         <BrandMark />
         <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-ocean-100">
           {ASSOCIATION_NAME}
         </p>
-        <h1 className="text-lg font-bold">Vérification de carte de membre</h1>
+        <h1 className="text-lg font-bold">{t.verify.title}</h1>
       </div>
 
       <Card className="mt-8 w-full max-w-md p-8">
@@ -99,16 +87,15 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
               <WifiOff className="h-8 w-8" />
             </div>
-            <h2 className="text-lg font-bold text-ocean-800">Vérification momentanément indisponible</h2>
+            <h2 className="text-lg font-bold text-ocean-800">{t.verify.unavailableTitle}</h2>
             <p className="text-sm text-ocean-500">
-              Le serveur est peut-être en train de démarrer. Patientez environ une minute puis
-              réessayez. Cela ne signifie pas que la carte est invalide.
+              {t.verify.unavailableText}
             </p>
             <a
               href={`/verify/${encodeURIComponent(token)}`}
               className="mt-2 inline-flex items-center justify-center rounded-xl bg-ocean-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-ocean-800/25 transition hover:bg-ocean-800"
             >
-              Réessayer
+              {t.verify.retry}
             </a>
           </div>
         )}
@@ -118,9 +105,9 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-500">
               <HelpCircle className="h-8 w-8" />
             </div>
-            <h2 className="text-lg font-bold text-ocean-800">Carte introuvable</h2>
+            <h2 className="text-lg font-bold text-ocean-800">{t.verify.notFoundTitle}</h2>
             <p className="text-sm text-ocean-500">
-              Ce QR code ne correspond à aucune carte de membre connue.
+              {t.verify.notFoundText}
             </p>
           </div>
         )}
@@ -132,7 +119,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
                 <MemberPhoto
                   src={lookup.result.photoUrl}
                   fallbackSrc={lookup.result.photoFallbackUrl}
-                  alt={`Photo de ${lookup.result.fullName}`}
+                  alt={fmt(t.verify.photoOf, { name: lookup.result.fullName })}
                 />
               </div>
             )}
@@ -145,28 +132,28 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
                   <div className={`flex h-14 w-14 items-center justify-center rounded-full ${cfg.bg} ${cfg.text}`}>
                     <Icon className="h-8 w-8" />
                   </div>
-                  <h2 className={`text-lg font-bold ${cfg.text}`}>{cfg.label}</h2>
+                  <h2 className={`text-lg font-bold ${cfg.text}`}>{t.verify.status[lookup.result.status] ?? t.verify.status.NONE}</h2>
                 </div>
               );
             })()}
 
             <dl className="mt-8 flex flex-col divide-y divide-slate-100 text-sm">
-              <Row label="Nom complet" value={lookup.result.fullName} />
-              <Row label="Identifiant" value={lookup.result.memberCode} />
-              <Row label="Ville d’origine" value={lookup.result.originDistrict} />
+              <Row label={t.verify.fullName} value={lookup.result.fullName} />
+              <Row label={t.verify.memberCode} value={lookup.result.memberCode} />
+              <Row label={t.verify.originCity} value={lookup.result.originDistrict} />
               {lookup.result.originLocality && (
-                <Row label="Localité d’origine" value={lookup.result.originLocality} />
+                <Row label={t.verify.originLocality} value={lookup.result.originLocality} />
               )}
-              <Row label="Ville de résidence" value={lookup.result.residence} />
-              <Row label="Émise le" value={formatDate(lookup.result.issuedAt)} />
-              <Row label="Expire le" value={formatDate(lookup.result.expiresAt)} />
+              <Row label={t.verify.residence} value={lookup.result.residence} />
+              <Row label={t.verify.issuedOn} value={formatDate(lookup.result.issuedAt, locale)} />
+              <Row label={t.verify.expiresOn} value={formatDate(lookup.result.expiresAt, locale)} />
             </dl>
           </>
         )}
       </Card>
 
       <p className="mt-6 max-w-sm text-center text-xs text-ocean-100/80">
-        Ce statut est vérifié en temps réel auprès de {ASSOCIATION_NAME}.
+        {fmt(t.verify.footer, { name: ASSOCIATION_NAME })}
       </p>
     </main>
   );

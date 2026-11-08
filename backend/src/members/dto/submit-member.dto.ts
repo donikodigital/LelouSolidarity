@@ -19,6 +19,11 @@ export class SubmitMemberDto {
   @IsDateString({}, { message: 'Date de naissance invalide' })
   birthDate: string;
 
+  @IsString({ message: 'La ville de naissance est obligatoire' })
+  @MinLength(1, { message: 'La ville de naissance est obligatoire' })
+  @MaxLength(120, { message: 'La ville de naissance est trop longue (120 caractères maximum)' })
+  birthCity: string;
+
   @IsString()
   @MinLength(1)
   @MaxLength(120)
@@ -45,6 +50,11 @@ export class SubmitMemberDto {
   @MinLength(1)
   @MaxLength(80)
   state: string;
+
+  @IsString({ message: 'Le pays est obligatoire' })
+  @MinLength(1, { message: 'Le pays est obligatoire' })
+  @MaxLength(80, { message: 'Le nom du pays est trop long' })
+  country: string;
 
   @IsString()
   @MinLength(1)

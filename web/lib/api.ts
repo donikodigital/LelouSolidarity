@@ -1,5 +1,7 @@
 //web/lib/api.ts
 import { clearSession } from './auth';
+import { readClientLocale } from './i18n/client';
+import { getDictionary } from './i18n';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -18,7 +20,7 @@ async function parseResponse(res: Response) {
   if (!res.ok) {
     const message =
       (body && (body.message || (Array.isArray(body.message) && body.message[0]))) ||
-      'Une erreur est survenue, merci de réessayer.';
+      getDictionary(readClientLocale()).common.genericError;
     throw new ApiError(Array.isArray(message) ? message[0] : message, res.status);
   }
 
@@ -29,7 +31,8 @@ async function parseResponse(res: Response) {
 export async function apiPublic(path: string, init: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { ...(init.headers || {}) },
+    // X-Lang : le serveur répond (erreurs, e-mails, carte) dans la langue du visiteur
+    headers: { 'X-Lang': readClientLocale(), ...(init.headers || {}) },
   });
   return parseResponse(res);
 }
@@ -41,6 +44,7 @@ export async function apiAdmin(path: string, token: string, init: RequestInit = 
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
+      'X-Lang': readClientLocale(),
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(init.headers || {}),
     },

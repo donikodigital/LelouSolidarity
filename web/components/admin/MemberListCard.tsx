@@ -1,13 +1,19 @@
 //web/components/admin/MemberListCard.tsx
+// v1.2 — « reçu le » traduit, dates selon la langue.
 // v1.1 — carte moderne : soulèvement et lueur dorée au survol, photo cerclée,
 // flèche animée, texte qui ne déborde plus ; accents rétablis.
+'use client';
+
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { CardStatusBadge, MemberStatusBadge } from '@/components/ui/Badge';
 import { formatDateShort } from '@/lib/format';
 import { Member } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 export function MemberListCard({ member }: { member: Member }) {
+  const { t, locale } = useI18n();
   return (
     <Link href={`/admin/membres/${member.id}`} className="group block min-w-0">
       <div className="relative flex items-center gap-4 overflow-hidden rounded-xl2 border border-ocean-100/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-[#D8B65C]/60 hover:shadow-card-hover active:scale-[0.98]">
@@ -29,7 +35,8 @@ export function MemberListCard({ member }: { member: Member }) {
             )}
           </div>
           <p className="mt-0.5 truncate text-xs text-ocean-400">
-            {member.email} &middot; reçu le {formatDateShort(member.createdAt)}
+            {member.email} &middot;{' '}
+            {fmt(t.admin.members.receivedOn, { date: formatDateShort(member.createdAt, locale) })}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <MemberStatusBadge status={member.status} />

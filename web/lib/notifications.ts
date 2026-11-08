@@ -2,6 +2,8 @@
 // Notifications de l'espace admin : calculées à partir des données existantes
 // (demandes de formulaire, demandes d'adhésion, cartes à renouveler / expirées).
 import { FormRequest, Member } from './types';
+import { fmt } from './i18n/pair';
+import type { Dictionary } from './i18n';
 
 export type NotificationKind =
   | 'form-request'
@@ -24,12 +26,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const REMINDER_DAYS = 30;
 const MAX_NOTIFICATIONS = 40;
 
-function formatShortDate(iso: string | null): string {
+function formatShortDate(iso: string | null, intl: string): string {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('fr-FR');
+  return new Date(iso).toLocaleDateString(intl);
 }
 
-export function buildNotifications(members: Member[], requests: FormRequest[]): AppNotification[] {
+export function buildNotifications(
+  members: Member[],
+  requests: FormRequest[],
+  t: Dictionary,
+  intl: string,
+): AppNotification[] {
   const items: AppNotification[] = [];
 
   for (const r of requests) {
@@ -37,7 +44,7 @@ export function buildNotifications(members: Member[], requests: FormRequest[]): 
     items.push({
       id: `req-${r.id}`,
       kind: 'form-request',
-      title: 'Nouvelle demande de formulaire',
+      title: t.notif.formRequestTitle,
       body: `${r.firstName} ${r.lastName.toUpperCase()} · ${r.city}`,
       date: r.createdAt,
       href: '/admin/demandes',
@@ -52,7 +59,7 @@ export function buildNotifications(members: Member[], requests: FormRequest[]): 
       items.push({
         id: `mem-${m.id}`,
         kind: 'member-pending',
-        title: 'Nouvelle demande d’adhésion',
+        title: t.notif.memberPendingTitle,
         body: name,
         date: m.createdAt,
         href,
@@ -64,8 +71,8 @@ export function buildNotifications(members: Member[], requests: FormRequest[]): 
       items.push({
         id: `exp-${m.id}`,
         kind: 'card-expiring',
-        title: 'Carte à renouveler',
-        body: `${name} · expire le ${formatShortDate(m.cardExpiresAt)}`,
+        title: t.notif.cardExpiringTitle,
+        body: fmt(t.notif.cardExpiringBody, { name, date: formatShortDate(m.cardExpiresAt, intl) }),
         // Date du rappel (J-30), pas celle de l'expiration (dans le futur)
         date: Number.isNaN(expires)
           ? m.createdAt
@@ -78,7 +85,7 @@ export function buildNotifications(members: Member[], requests: FormRequest[]): 
       items.push({
         id: `end-${m.id}`,
         kind: 'card-expired',
-        title: 'Carte expirée',
+        title: t.notif.cardExpiredTitle,
         body: name,
         date: m.cardExpiresAt ?? m.createdAt,
         href,
@@ -91,15 +98,15 @@ export function buildNotifications(members: Member[], requests: FormRequest[]): 
     .slice(0, MAX_NOTIFICATIONS);
 }
 
-export function timeAgo(iso: string): string {
+export function timeAgo(iso: string, t: Dictionary, intl: string): string {
   const diff = Date.now() - Date.parse(iso);
   if (Number.isNaN(diff)) return '';
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return 'À l’instant';
-  if (minutes < 60) return `Il y a ${minutes} min`;
+  if (minutes < 1) return t.notif.justNow;
+  if (minutes < 60) return fmt(t.notif.minutesAgo, { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Il y a ${hours} h`;
+  if (hours < 24) return fmt(t.notif.hoursAgo, { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `Il y a ${days} j`;
-  return new Date(iso).toLocaleDateString('fr-FR');
+  if (days < 7) return fmt(t.notif.daysAgo, { n: days });
+  return new Date(iso).toLocaleDateString(intl);
 }

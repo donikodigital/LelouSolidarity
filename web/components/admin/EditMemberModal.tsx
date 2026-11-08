@@ -1,4 +1,7 @@
 //web/components/admin/EditMemberModal.tsx
+// v1.3 — textes FR/EN.
+// v1.2 — « Ville de naissance » et « Pays » ; ville/localité d'origine et année/ville de
+// naissance sur la même ligne (aucun de ces champs n'est imprimé sur la carte).
 // v1.1 — champ « Localité d'origine » ; libellés alignés sur la carte (Ville d'origine,
 // Ville de résidence) ; l'année de naissance n'est plus imprimée sur la carte, en
 // revanche le téléphone et la localité le sont : ils rendent le PDF obsolète.
@@ -13,6 +16,8 @@ import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { formatYear } from '@/lib/format';
 import { Member } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 interface EditMemberModalProps {
   open: boolean;
@@ -26,10 +31,12 @@ interface EditForm {
   firstName: string;
   lastName: string;
   birthYear: string;
+  birthCity: string;
   originDistrict: string;
   originLocality: string;
   addressLine: string;
   state: string;
+  country: string;
   city: string;
   zipCode: string;
   phone: string;
@@ -44,8 +51,10 @@ const TEXT_FIELDS = [
   'lastName',
   'originDistrict',
   'originLocality',
+  'birthCity',
   'addressLine',
   'state',
+  'country',
   'city',
   'zipCode',
   'phone',
@@ -65,18 +74,18 @@ const CARD_FIELDS: (keyof EditForm)[] = [
 
 // Memes grilles que le formulaire public : 2 colonnes des le mobile
 const ROW_EQUAL = 'grid grid-cols-2 items-end gap-3 sm:gap-4 [&>*]:min-w-0';
-const ROW_WIDE_NARROW =
-  'grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-end gap-3 sm:gap-4 [&>*]:min-w-0';
 
 function fromMember(m: Member): EditForm {
   return {
     firstName: m.firstName,
     lastName: m.lastName,
     birthYear: formatYear(m.birthDate),
+    birthCity: m.birthCity ?? '',
     originDistrict: m.originDistrict,
     originLocality: m.originLocality ?? '',
     addressLine: m.addressLine,
     state: m.state,
+    country: m.country ?? '',
     city: m.city,
     zipCode: m.zipCode,
     phone: m.phone,
@@ -86,6 +95,8 @@ function fromMember(m: Member): EditForm {
 
 export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberModalProps) {
   const { session } = useSession();
+  const { t } = useI18n();
+  const te = t.admin.edit;
   const initial = useMemo(() => fromMember(member), [member]);
 
   const [form, setForm] = useState<EditForm>(initial);
@@ -119,9 +130,7 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
       year < MIN_BIRTH_YEAR ||
       year > currentYear
     ) {
-      setError(
-        `Annee de naissance invalide : indiquez 4 chiffres entre ${MIN_BIRTH_YEAR} et ${currentYear}.`,
-      );
+      setError(fmt(te.birthYearInvalid, { min: MIN_BIRTH_YEAR, max: currentYear }));
       return;
     }
 
@@ -158,22 +167,18 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
         Boolean(updated.memberCode) && CARD_FIELDS.some((field) => changed.has(field));
       onSaved(updated, cardOutdated);
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Impossible d\u2019enregistrer les modifications, reessayez.',
-      );
+      setError(err instanceof ApiError ? err.message : te.saveFailed);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Modifier le membre" size="lg">
+    <Modal open={open} onClose={handleClose} title={te.title} size="lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className={ROW_EQUAL}>
           <Input
-            label="Prenom"
+            label={te.firstName}
             name="firstName"
             autoComplete="off"
             required
@@ -181,7 +186,7 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             onChange={(e) => update('firstName', e.target.value)}
           />
           <Input
-            label="Nom"
+            label={te.lastName}
             name="lastName"
             autoComplete="off"
             required
@@ -192,7 +197,7 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
 
         <div className={ROW_EQUAL}>
           <Input
-            label="Annee de naissance"
+            label={te.birthYear}
             name="birthYear"
             type="text"
             inputMode="numeric"
@@ -203,8 +208,21 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             value={form.birthYear}
             onChange={(e) => update('birthYear', e.target.value.replace(/\D/g, '').slice(0, 4))}
           />
+          {/* Pas « required » : les membres inscrits avant l'ajout du champ n'ont pas de ville
+              de naissance, ça ne doit pas empêcher de modifier le reste de leur fiche. */}
           <Input
-            label="Ville d'origine"
+            label={te.birthCity}
+            name="birthCity"
+            autoComplete="off"
+            placeholder="Lelouma"
+            value={form.birthCity}
+            onChange={(e) => update('birthCity', e.target.value)}
+          />
+        </div>
+
+        <div className={ROW_EQUAL}>
+          <Input
+            label={te.originCity}
             name="originDistrict"
             autoComplete="off"
             placeholder="Lelouma"
@@ -212,29 +230,37 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             value={form.originDistrict}
             onChange={(e) => update('originDistrict', e.target.value)}
           />
+          <Input
+            label={te.originLocality}
+            name="originLocality"
+            autoComplete="off"
+            placeholder="Korbe"
+            required
+            value={form.originLocality}
+            onChange={(e) => update('originLocality', e.target.value)}
+          />
         </div>
 
         <Input
-          label="Localite d'origine"
-          name="originLocality"
+          label={te.address}
+          name="addressLine"
           autoComplete="off"
-          placeholder="Korbe ou Sagale"
           required
-          value={form.originLocality}
-          onChange={(e) => update('originLocality', e.target.value)}
+          value={form.addressLine}
+          onChange={(e) => update('addressLine', e.target.value)}
         />
 
-        <div className={ROW_WIDE_NARROW}>
+        <div className={ROW_EQUAL}>
           <Input
-            label="Adresse"
-            name="addressLine"
+            label={te.residenceCity}
+            name="city"
             autoComplete="off"
             required
-            value={form.addressLine}
-            onChange={(e) => update('addressLine', e.target.value)}
+            value={form.city}
+            onChange={(e) => update('city', e.target.value)}
           />
           <Input
-            label="Etat"
+            label={te.state}
             name="state"
             autoComplete="off"
             required
@@ -243,17 +269,9 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
           />
         </div>
 
-        <div className={ROW_WIDE_NARROW}>
+        <div className={ROW_EQUAL}>
           <Input
-            label="Ville de residence"
-            name="city"
-            autoComplete="off"
-            required
-            value={form.city}
-            onChange={(e) => update('city', e.target.value)}
-          />
-          <Input
-            label="Code postal"
+            label={te.zipCode}
             name="zipCode"
             inputMode="numeric"
             autoComplete="off"
@@ -261,13 +279,21 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             value={form.zipCode}
             onChange={(e) => update('zipCode', e.target.value)}
           />
+          <Input
+            label={te.country}
+            name="country"
+            autoComplete="off"
+            required
+            value={form.country}
+            onChange={(e) => update('country', e.target.value)}
+          />
         </div>
 
         {/* Telephone / e-mail : empiles sur mobile dans la modale (largeur utile
             ~280 px, trop juste pour afficher une adresse e-mail en entier) */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
           <Input
-            label="Telephone portable"
+            label={te.phone}
             name="phone"
             type="tel"
             placeholder="+1 (718) 555-0123"
@@ -277,7 +303,7 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             onChange={(e) => update('phone', e.target.value)}
           />
           <Input
-            label="Adresse e-mail"
+            label={te.email}
             name="email"
             type="email"
             autoComplete="off"
@@ -299,10 +325,10 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
 
         <div className="mt-1 grid grid-cols-2 gap-2.5 sm:flex sm:justify-end">
           <Button type="button" variant="secondary" onClick={handleClose} disabled={saving}>
-            Annuler
+            {te.cancel}
           </Button>
           <Button type="submit" loading={saving}>
-            {saving ? 'Enregistrement...' : 'Enregistrer'}
+            {saving ? te.saving : te.save}
           </Button>
         </div>
       </form>

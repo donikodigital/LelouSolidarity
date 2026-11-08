@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { UploadCloud, X, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -15,6 +16,7 @@ interface PhotoDropzoneProps {
 }
 
 export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -36,24 +38,24 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
       if (!candidate) return;
 
       if (!ALLOWED_TYPES.includes(candidate.type)) {
-        setLocalError('Format non supporté : utilisez une photo JPG ou PNG.');
+        setLocalError(t.common.photo.badFormat);
         return;
       }
       if (candidate.size > MAX_BYTES) {
-        setLocalError('La photo dépasse 10 Mo, merci d’en choisir une plus légère.');
+        setLocalError(t.common.photo.tooBig);
         return;
       }
       setLocalError(null);
       onChange(candidate);
     },
-    [onChange],
+    [onChange, t],
   );
 
   const shownError = error || localError || undefined;
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[13px] font-semibold text-ocean-800">Photo d&apos;identité</label>
+      <label className="text-[13px] font-semibold text-ocean-800">{t.common.photo.label}</label>
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -86,7 +88,7 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
           <div className="flex flex-col items-center gap-3">
             <img
               src={preview}
-              alt="Aperçu"
+              alt={t.common.photo.preview}
               className="h-28 w-28 rounded-full border-4 border-white object-cover shadow-card ring-2 ring-[#D8B65C]"
             />
             <div className="flex gap-2">
@@ -98,7 +100,7 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-ocean-50 px-3 py-1.5 text-xs font-semibold text-ocean-700 hover:bg-ocean-100"
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Remplacer
+                <RefreshCw className="h-3.5 w-3.5" /> {t.common.photo.replace}
               </button>
               <button
                 type="button"
@@ -108,7 +110,7 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
               >
-                <X className="h-3.5 w-3.5" /> Retirer
+                <X className="h-3.5 w-3.5" /> {t.common.photo.remove}
               </button>
             </div>
           </div>
@@ -118,9 +120,9 @@ export function PhotoDropzone({ file, onChange, error }: PhotoDropzoneProps) {
               <UploadCloud className="h-5 w-5" />
             </div>
             <p className="text-sm font-semibold text-ocean-700">
-              Touchez ou glissez votre photo ici
+              {t.common.photo.drop}
             </p>
-            <p className="text-xs text-ocean-400">JPG ou PNG, 10 Mo maximum</p>
+            <p className="text-xs text-ocean-400">{t.common.photo.hint}</p>
           </>
         )}
       </div>

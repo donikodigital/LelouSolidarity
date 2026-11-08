@@ -1,6 +1,9 @@
 //web/components/layout/Logo.tsx
+'use client';
+
 import Image from 'next/image';
 import clsx from 'clsx';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 interface LogoProps {
   /** Taille d'affichage en pixels (le fichier source fait 512 px). */
@@ -15,10 +18,11 @@ interface LogoProps {
  * Logo officiel LELOU SOLIDARITY, INC. (fichier : web/public/logo.png).
  */
 export function Logo({ size = 64, ring = false, priority = false, className }: LogoProps) {
+  const t = useT();
   return (
     <Image
       src="/logo.png"
-      alt="Logo LELOU SOLIDARITY, INC."
+      alt={t.common.logoAlt}
       width={size}
       height={size}
       priority={priority}

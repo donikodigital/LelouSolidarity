@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiAdmin } from '../api';
 import { Member } from '../types';
 import { useSession } from '@/components/admin/SessionProvider';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 export function useMembers() {
   const { session } = useSession();
+  const { t } = useI18n();
   const [members, setMembers] = useState<Member[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,11 +21,11 @@ export function useMembers() {
       const data = await apiAdmin('/admin/members', session.accessToken);
       setMembers(data);
     } catch {
-      setError('Impossible de charger la liste des membres.');
+      setError(t.admin.members.loadError);
     } finally {
       setLoading(false);
     }
-  }, [session.accessToken]);
+  }, [session.accessToken, t]);
 
   useEffect(() => {
     reload();

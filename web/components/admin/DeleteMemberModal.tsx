@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { Member } from '@/lib/types';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { fmt } from '@/lib/i18n/pair';
 
 interface DeleteMemberModalProps {
   open: boolean;
@@ -18,6 +20,8 @@ interface DeleteMemberModalProps {
 
 export function DeleteMemberModal({ open, member, onClose, onDeleted }: DeleteMemberModalProps) {
   const { session } = useSession();
+  const { t } = useI18n();
+  const td = t.admin.delete;
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,36 +43,41 @@ export function DeleteMemberModal({ open, member, onClose, onDeleted }: DeleteMe
       // La page redirige vers la liste : on laisse le bouton en chargement
       onDeleted();
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'Impossible de supprimer ce membre, reessayez.',
-      );
+      setError(err instanceof ApiError ? err.message : td.failed);
       setDeleting(false);
     }
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Supprimer ce membre ?">
+    <Modal open={open} onClose={handleClose} title={td.title}>
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
             <Trash2 className="h-5 w-5" />
           </div>
           <p className="text-sm leading-relaxed text-ocean-600">
-            Vous allez supprimer definitivement{' '}
-            <strong className="font-semibold text-ocean-800">
-              {member.firstName} {member.lastName}
-            </strong>
-            .
+            {fmt(td.intro, { name: '\u0000' })
+              .split('\u0000')
+              .flatMap((part, i, arr) =>
+                i < arr.length - 1
+                  ? [
+                      part,
+                      <strong key="name" className="font-semibold text-ocean-800">
+                        {member.firstName} {member.lastName}
+                      </strong>,
+                    ]
+                  : [part],
+              )}
           </p>
         </div>
 
         <ul className="list-disc space-y-1.5 pl-5 text-sm text-ocean-500">
-          <li>La fiche et la photo du membre sont effacees.</li>
-          <li>Sa carte PDF est supprimee et son QR code ne sera plus valide.</li>
-          <li>Son code d&apos;acces est supprime avec lui.</li>
+          {td.bullets.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
         </ul>
 
-        <p className="text-sm font-semibold text-red-600">Cette action est irreversible.</p>
+        <p className="text-sm font-semibold text-red-600">{td.irreversible}</p>
 
         {error && (
           <div
@@ -82,10 +91,10 @@ export function DeleteMemberModal({ open, member, onClose, onDeleted }: DeleteMe
 
         <div className="mt-1 grid grid-cols-2 gap-2.5 sm:flex sm:justify-end">
           <Button type="button" variant="secondary" onClick={handleClose} disabled={deleting}>
-            Annuler
+            {td.cancel}
           </Button>
           <Button type="button" variant="danger-solid" onClick={handleDelete} loading={deleting}>
-            {deleting ? 'Suppression...' : 'Supprimer'}
+            {deleting ? td.deleting : td.confirm}
           </Button>
         </div>
       </div>

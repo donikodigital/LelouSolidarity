@@ -1,4 +1,6 @@
 //backend/src/members/members.service.ts
+// v1.8 — demande : Etat et Pays (prefill + verrouillage) ; membre : ville de
+// naissance (birthCity) et pays (country) a l'inscription et a la modification.
 // v1.7 — nouveau champ « localité d'origine » (originLocality) à l'inscription et
 // à la modification ; le téléphone est enregistré au format « +1 (718) 555-0123 »
 // (normalizePhone) pour les numéros américains, y compris ceux repris d'une demande.
@@ -32,6 +34,7 @@ import { SubmitMemberDto } from './dto/submit-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { ListMembersQueryDto } from './dto/list-members-query.dto';
 import { normalizePhone } from '../common/phone';
+import { Locale } from '../common/i18n';
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 Mo
 const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -53,6 +56,9 @@ export interface AccessCodePrefill {
   firstName: string;
   lastName: string;
   city: string;
+  /** Vide pour une demande faite avant l'ajout du champ : le membre le saisit alors lui-même */
+  state: string;
+  country: string;
   phone: string;
   email: string;
 }
@@ -69,9 +75,11 @@ const UPDATABLE_TEXT_FIELDS = [
   'lastName',
   'originDistrict',
   'originLocality',
+  'birthCity',
   'addressLine',
   'city',
   'state',
+  'country',
   'zipCode',
   'phone',
 ] as const;
@@ -106,7 +114,15 @@ export class MembersService {
       select: {
         used: true,
         formRequest: {
-          select: { firstName: true, lastName: true, city: true, phone: true, email: true },
+          select: {
+            firstName: true,
+            lastName: true,
+            city: true,
+            state: true,
+            country: true,
+            phone: true,
+            email: true,
+          },
         },
       },
     });
@@ -118,7 +134,7 @@ export class MembersService {
       : { status: 'VALID' };
   }
 
-  async submit(dto: SubmitMemberDto, photo?: Express.Multer.File) {
+  async submit(dto: SubmitMemberDto, photo?: Express.Multer.File, locale: Locale = 'fr') {
     if (!photo) {
       throw new BadRequestException('La photo d’identité est obligatoire.');
     }
@@ -152,6 +168,9 @@ export class MembersService {
       firstName: (fixed?.firstName ?? dto.firstName).trim(),
       lastName: (fixed?.lastName ?? dto.lastName).trim(),
       city: (fixed?.city ?? dto.city).trim(),
+      // État vide dans une ancienne demande : on garde la saisie du membre
+      state: (fixed?.state || dto.state).trim(),
+      country: (fixed?.country || dto.country).trim(),
       phone: normalizePhone(fixed?.phone ?? dto.phone),
       email: (fixed?.email ?? dto.email).toLowerCase().trim(),
     };
@@ -205,11 +224,14 @@ export class MembersService {
             firstName: identity.firstName,
             lastName: identity.lastName,
             birthDate: new Date(dto.birthDate),
+            birthCity: dto.birthCity.trim(),
             originDistrict: dto.originDistrict.trim(),
             originLocality: dto.originLocality.trim(),
             addressLine: dto.addressLine.trim(),
             city: identity.city,
-            state: dto.state.trim(),
+            state: identity.state,
+            country: identity.country,
+            locale,
             zipCode: dto.zipCode.trim(),
             phone: identity.phone,
             email: identity.email,
@@ -236,7 +258,7 @@ export class MembersService {
     // À ce stade, le membre est déjà enregistré et le code déjà consommé :
     // un échec d'envoi d'e-mail ne doit plus être fatal pour la requête.
     try {
-      await this.mail.sendSubmissionReceived(member.email, member.firstName);
+      await this.mail.sendSubmissionReceived(member.email, member.firstName, locale);
     } catch (err) {
       this.logger.error(
         `Échec de l'e-mail de confirmation pour ${member.email}: ${(err as Error).message}`,
