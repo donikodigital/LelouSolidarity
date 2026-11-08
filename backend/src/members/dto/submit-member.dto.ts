@@ -24,9 +24,11 @@ export class SubmitMemberDto {
   @MaxLength(120)
   originDistrict: string;
 
-  @IsString()
+  // Messages explicites : sans eux, un champ absent (ancienne version du site
+  // encore en cache) affichait « must be shorter than or equal to 120 characters ».
+  @IsString({ message: 'La localité d’origine est obligatoire' })
   @MinLength(1, { message: 'La localité d’origine est obligatoire' })
-  @MaxLength(120)
+  @MaxLength(120, { message: 'La localité d’origine est trop longue (120 caractères maximum)' })
   originLocality: string;
 
   @IsString()
