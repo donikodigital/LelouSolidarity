@@ -37,6 +37,12 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(120)
+  originLocality?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
   @MaxLength(160)
   addressLine?: string;
 

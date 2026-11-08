@@ -1,4 +1,6 @@
 //backend/src/cards/cards.service.ts
+// v2.1 — la carte imprime le téléphone (au lieu de l'année de naissance) et la
+// localité d'origine du membre.
 // v2.0 — fin de Chromium : le PDF est dessiné avec pdfkit (card-pdf.ts).
 //  - plus de navigateur à lancer : la génération passe d'environ 50 s à moins
 //    d'une seconde et ne risque plus de dépasser les 512 Mo de Render ;
@@ -138,8 +140,9 @@ export class CardsService {
       pdfBuffer = await renderMemberCardPdf({
         firstName: member.firstName,
         lastName: member.lastName,
-        birthYear: member.birthDate.getFullYear(),
+        phone: member.phone,
         originDistrict: member.originDistrict,
+        originLocality: member.originLocality,
         city: member.city,
         state: member.state,
         memberCode,

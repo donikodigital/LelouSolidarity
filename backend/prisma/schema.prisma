@@ -81,7 +81,8 @@ model Member {
   birthDate      DateTime
 
   // Origine
-  originDistrict String   // Ville / district d'origine a Lelouma
+  originDistrict String   // Ville d'origine (ex. Lelouma)
+  originLocality String   @default("") // Localite d'origine (ex. Korbe, Sagale) ; vide pour les membres inscrits avant l'ajout du champ
 
   // Residence aux USA
   addressLine    String

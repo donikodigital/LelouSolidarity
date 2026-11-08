@@ -1,4 +1,6 @@
 //backend/src/verify/verify.controller.ts
+// v1.2 — renvoie aussi la localité d'origine (le téléphone n'est volontairement
+// pas exposé : cet endpoint est public).
 // v1.1 — renvoie aussi la photo du membre (version réduite 400 x 490 px, comme
 // sur la carte) pour que la personne qui contrôle compare le visage du porteur
 // avec la photo enregistrée. `photoFallbackUrl` = photo d'origine, utilisée par
@@ -49,6 +51,7 @@ export class VerifyController {
       memberCode: member.memberCode,
       fullName: `${member.firstName} ${member.lastName}`,
       originDistrict: member.originDistrict,
+      originLocality: member.originLocality,
       residence: `${member.city}, ${member.state}`,
       issuedAt: member.cardIssuedAt,
       expiresAt: member.cardExpiresAt,

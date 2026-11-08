@@ -1,4 +1,7 @@
 //backend/src/members/members.service.ts
+// v1.7 — nouveau champ « localité d'origine » (originLocality) à l'inscription et
+// à la modification ; le téléphone est enregistré au format « +1 (718) 555-0123 »
+// (normalizePhone) pour les numéros américains, y compris ceux repris d'une demande.
 // v1.6 — lien issu d'une demande de formulaire : checkAccessCode() renvoie les
 // informations de la demande (prefill) et submit() les impose (nom, prénom, ville,
 // téléphone, e-mail) quoi que le navigateur envoie : ces champs sont verrouillés.
@@ -28,6 +31,7 @@ import { MailService } from '../mail/mail.service';
 import { SubmitMemberDto } from './dto/submit-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { ListMembersQueryDto } from './dto/list-members-query.dto';
+import { normalizePhone } from '../common/phone';
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 Mo
 const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -59,11 +63,12 @@ export interface AccessCodeStatusResult {
 }
 
 // Champs texte modifiables tels quels (trim uniquement).
-// birthDate et email ont un traitement propre dans update().
+// birthDate, email et phone ont un traitement propre dans update().
 const UPDATABLE_TEXT_FIELDS = [
   'firstName',
   'lastName',
   'originDistrict',
+  'originLocality',
   'addressLine',
   'city',
   'state',
@@ -147,7 +152,7 @@ export class MembersService {
       firstName: (fixed?.firstName ?? dto.firstName).trim(),
       lastName: (fixed?.lastName ?? dto.lastName).trim(),
       city: (fixed?.city ?? dto.city).trim(),
-      phone: (fixed?.phone ?? dto.phone).trim(),
+      phone: normalizePhone(fixed?.phone ?? dto.phone),
       email: (fixed?.email ?? dto.email).toLowerCase().trim(),
     };
 
@@ -201,6 +206,7 @@ export class MembersService {
             lastName: identity.lastName,
             birthDate: new Date(dto.birthDate),
             originDistrict: dto.originDistrict.trim(),
+            originLocality: dto.originLocality.trim(),
             addressLine: dto.addressLine.trim(),
             city: identity.city,
             state: dto.state.trim(),
@@ -279,6 +285,9 @@ export class MembersService {
       data[field] = trimmed;
     }
 
+    if (typeof data.phone === 'string') {
+      data.phone = normalizePhone(data.phone);
+    }
     if (dto.birthDate !== undefined) {
       data.birthDate = new Date(dto.birthDate);
     }

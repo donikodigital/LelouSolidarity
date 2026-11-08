@@ -21,7 +21,7 @@ import { EditMemberModal } from '@/components/admin/EditMemberModal';
 import { DeleteMemberModal } from '@/components/admin/DeleteMemberModal';
 import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
-import { formatDate, formatYear } from '@/lib/format';
+import { formatDate, formatYear, formatPhone } from '@/lib/format';
 import { Member } from '@/lib/types';
 
 export default function MemberDetailPage() {
@@ -161,10 +161,11 @@ export default function MemberDetailPage() {
           </h2>
           <dl className="mt-4 flex flex-col divide-y divide-slate-100 text-sm">
             <Info label="Annee de naissance" value={formatYear(member.birthDate)} />
-            <Info label="Origine" value={member.originDistrict} />
+            <Info label="Ville d'origine" value={member.originDistrict} />
+            <Info label="Localite d'origine" value={member.originLocality || '-'} />
             <Info label="Adresse" value={member.addressLine} />
-            <Info label="Ville" value={`${member.city}, ${member.state} ${member.zipCode}`} />
-            <Info label="Telephone" value={member.phone} />
+            <Info label="Ville de residence" value={`${member.city}, ${member.state} ${member.zipCode}`} />
+            <Info label="Telephone" value={formatPhone(member.phone)} />
             <Info label="Demande recue le" value={formatDate(member.createdAt)} />
           </dl>
 

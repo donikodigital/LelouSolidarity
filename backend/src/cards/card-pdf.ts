@@ -1,4 +1,9 @@
 //backend/src/cards/card-pdf.ts
+// v1.3 — pas de drapeau devant le téléphone : les drapeaux des USA et de la Guinée
+// (rouge-jaune-vert) sont placés en haut à droite, au-dessus de la pastille de statut.
+// v1.2 — recto : l'année de naissance est remplacée par le téléphone
+// (« +1 (718) 555-0123 ») ; lignes « Ville d'origine », « Localité d'origine »
+// et « Ville de résidence ».
 // v1.1 — nom de l'association en dégradé d'or (comme l'ancienne carte).
 // v1.0 — remplace card-template.ts + Puppeteer/Chromium.
 // La carte (recto + verso empilés sur une page) est dessinée directement en PDF
@@ -21,12 +26,14 @@ import {
   PAGE_WIDTH_MM,
 } from './theme';
 import { LOGO_DATA_URL } from './logo-data';
+import { parsePhone } from '../common/phone';
 
 export interface CardData {
   firstName: string;
   lastName: string;
-  birthYear: number;
+  phone: string;
   originDistrict: string;
+  originLocality: string;
   city: string;
   state: string;
   memberCode: string;
@@ -322,6 +329,63 @@ function drawPin(doc: Doc, x: number, y: number, size: number) {
   doc.restore();
 }
 
+/** Drapeau des États-Unis (13 bandes, canton bleu et étoiles stylisées), dessiné en vectoriel. */
+function drawUsFlag(doc: Doc, x: number, y: number, w: number, h: number) {
+  const stripe = h / 13;
+  doc.save();
+  rr(doc, x, y, w, h, 0.3).clip();
+  doc.rect(x, y, w, h).fillColor('#FFFFFF', 1).fill();
+  for (let i = 0; i < 13; i += 2) {
+    doc.rect(x, y + i * stripe, w, stripe + 0.01).fillColor('#B22234', 1).fill();
+  }
+  const cw = w * 0.4;
+  const ch = stripe * 7;
+  doc.rect(x, y, cw, ch).fillColor('#3C3B6E', 1).fill();
+
+  // Étoiles : 4 rangées en quinconce (4 puis 3 points), assez fines pour rester lisibles à l'impression
+  const rows = 4;
+  for (let r = 0; r < rows; r++) {
+    const count = r % 2 === 0 ? 4 : 3;
+    const offset = r % 2 === 0 ? 0 : 0.5;
+    for (let c = 0; c < count; c++) {
+      const sx = x + cw * ((c + 0.5 + offset) / 4);
+      const sy = y + ch * ((r + 0.5) / rows);
+      doc.circle(sx, sy, 0.1).fillColor('#FFFFFF', 1).fill();
+    }
+  }
+  doc.restore();
+
+  // Fin liseré clair pour détacher le drapeau du fond bleu de la carte
+  rr(doc, x, y, w, h, 0.3);
+  strokePath(doc, '#ffffff', 0.5, 0.1);
+}
+
+/** Drapeau de la République de Guinée : trois bandes verticales rouge, jaune, vert. */
+function drawGuineaFlag(doc: Doc, x: number, y: number, w: number, h: number) {
+  const band = w / 3;
+  doc.save();
+  rr(doc, x, y, w, h, 0.3).clip();
+  doc.rect(x, y, band + 0.01, h).fillColor('#CE1126', 1).fill();
+  doc.rect(x + band, y, band + 0.01, h).fillColor('#FCD116', 1).fill();
+  doc.rect(x + band * 2, y, band, h).fillColor('#009460', 1).fill();
+  doc.restore();
+
+  rr(doc, x, y, w, h, 0.3);
+  strokePath(doc, '#ffffff', 0.5, 0.1);
+}
+
+/** Drapeaux des USA et de la Guinée, alignés à droite au-dessus de la pastille de statut. */
+function drawHeaderFlags(doc: Doc) {
+  const h = 2.2;
+  const y = 1.4;
+  const gap = 1.2;
+  const guineaW = h * 1.5;
+  const usW = h * 1.9;
+  const right = FACE_W - 4;
+  drawGuineaFlag(doc, right - guineaW, y, guineaW, h);
+  drawUsFlag(doc, right - guineaW - gap - usW, y, usW, h);
+}
+
 function drawStatusPill(doc: Doc, status: CardData['status']): number {
   const label = statusLabel(status);
   const style: TextStyle = { font: BOLD, size: 6.2, color: '#ffffff', spacing: 0.6 };
@@ -425,6 +489,7 @@ function drawRecto(doc: Doc, data: CardData) {
   drawText(doc, 'CARTE DE MEMBRE', 15.9, 8.81, { size: 5, color: '#ffffff', alpha: 0.72, spacing: 1.5 });
 
   // La puce d'empreinte se décale vers la gauche si la pastille de statut est large
+  drawHeaderFlags(doc);
   const pillX = drawStatusPill(doc, data.status);
   drawFingerprintChip(doc, Math.min(FACE_W - 26 - 7.2, pillX - 1.5 - 7.2), 4.2, 7.2);
   drawPhotoFrame(doc, data.photo);
@@ -439,23 +504,29 @@ function drawRecto(doc: Doc, data: CardData) {
   const fullName = safe(`${data.firstName} ${data.lastName.toUpperCase()}`);
   const nameStyle = shrinkToFit(doc, fullName, infoW, { font: BOLD, size: 11.5, color: '#ffffff', spacing: 0.2 }, 7);
   drawText(doc, fullName, infoX, y, nameStyle);
-  y += px(11.5) * 1.12 + 0.9;
+  y += px(11.5) * 1.12 + 0.8;
 
   rr(doc, infoX, y, 14, 0.3, 0.15);
   fillPath(doc, goldGradient(doc, infoX, y, 14, 0.3));
-  y += 0.3 + 1.9;
+  y += 0.3 + 1.6;
 
-  const rows: Array<[string, string]> = [
-    ['NÉ(E) EN', safe(data.birthYear)],
-    ['ORIGINE', safe(data.originDistrict)],
-    ['RÉSIDENCE', safe(`${data.city}, ${data.state}`)],
+  // Téléphone, puis origine et résidence
+  const phone = parsePhone(data.phone);
+  const rows: Array<{ label: string; value: string }> = [
+    { label: 'TÉLÉPHONE', value: phone.text ? safe(phone.text) : '—' },
+    { label: 'VILLE D’ORIGINE', value: safe(data.originDistrict) || '—' },
+    { label: 'LOCALITÉ D’ORIGINE', value: safe(data.originLocality) || '—' },
+    { label: 'VILLE DE RÉSIDENCE', value: safe(`${data.city}, ${data.state}`) },
   ];
-  const valueStyle: TextStyle = { font: BOLD, size: 7, color: '#ffffff' };
-  const rowH = px(7) * 1.15;
-  for (const [label, value] of rows) {
-    drawText(doc, label, infoX, y + 0.35, { size: 5.1, color: '#ffffff', alpha: 0.62, spacing: 0.7 });
-    drawText(doc, fitText(doc, value, infoW - 15, valueStyle), infoX + 15, y, valueStyle);
-    y += rowH + 1.35;
+  const labelStyle: TextStyle = { size: 4.9, color: '#ffffff', alpha: 0.62, spacing: 0.5 };
+  const valueStyle: TextStyle = { font: BOLD, size: 6.8, color: '#ffffff' };
+  const labelW = Math.max(...rows.map((r) => widthOf(doc, r.label, labelStyle))) + 1.8;
+  const valueX = infoX + labelW;
+  const rowH = px(6.8) * 1.15;
+  for (const row of rows) {
+    drawText(doc, row.label, infoX, y + 0.3, labelStyle);
+    drawText(doc, fitText(doc, row.value, infoX + infoW - valueX, valueStyle), valueX, y, valueStyle);
+    y += rowH + 0.95;
   }
 
   // Pied de carte : identifiant + expiration

@@ -25,6 +25,11 @@ export class SubmitMemberDto {
   originDistrict: string;
 
   @IsString()
+  @MinLength(1, { message: 'La localité d’origine est obligatoire' })
+  @MaxLength(120)
+  originLocality: string;
+
+  @IsString()
   @MinLength(1)
   @MaxLength(160)
   addressLine: string;

@@ -1,4 +1,5 @@
 //web/app/verify/[token]/page.tsx
+// v1.3 — libellés alignés sur la carte : Ville d'origine, Localité d'origine, Ville de résidence.
 // v1.2 — affiche la photo du membre (cadre or) au-dessus du statut, pour que la
 // personne qui contrôle compare le visage du porteur avec la photo enregistrée.
 // v1.1 — la page ne dit plus « Carte introuvable » quand le serveur est
@@ -152,8 +153,11 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
             <dl className="mt-8 flex flex-col divide-y divide-slate-100 text-sm">
               <Row label="Nom complet" value={lookup.result.fullName} />
               <Row label="Identifiant" value={lookup.result.memberCode} />
-              <Row label="Origine" value={lookup.result.originDistrict} />
-              <Row label="Résidence" value={lookup.result.residence} />
+              <Row label="Ville d’origine" value={lookup.result.originDistrict} />
+              {lookup.result.originLocality && (
+                <Row label="Localité d’origine" value={lookup.result.originLocality} />
+              )}
+              <Row label="Ville de résidence" value={lookup.result.residence} />
               <Row label="Émise le" value={formatDate(lookup.result.issuedAt)} />
               <Row label="Expire le" value={formatDate(lookup.result.expiresAt)} />
             </dl>

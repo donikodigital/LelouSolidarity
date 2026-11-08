@@ -8,6 +8,7 @@ export interface Member {
   lastName: string;
   birthDate: string;
   originDistrict: string;
+  originLocality: string;
   addressLine: string;
   city: string;
   state: string;
@@ -59,6 +60,7 @@ export interface VerifyResult {
   memberCode: string;
   fullName: string;
   originDistrict: string;
+  originLocality?: string;
   residence: string;
   issuedAt: string | null;
   expiresAt: string | null;

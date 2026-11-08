@@ -1,4 +1,7 @@
 //web/components/admin/EditMemberModal.tsx
+// v1.1 — champ « Localité d'origine » ; libellés alignés sur la carte (Ville d'origine,
+// Ville de résidence) ; l'année de naissance n'est plus imprimée sur la carte, en
+// revanche le téléphone et la localité le sont : ils rendent le PDF obsolète.
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
@@ -24,6 +27,7 @@ interface EditForm {
   lastName: string;
   birthYear: string;
   originDistrict: string;
+  originLocality: string;
   addressLine: string;
   state: string;
   city: string;
@@ -39,6 +43,7 @@ const TEXT_FIELDS = [
   'firstName',
   'lastName',
   'originDistrict',
+  'originLocality',
   'addressLine',
   'state',
   'city',
@@ -47,12 +52,13 @@ const TEXT_FIELDS = [
   'email',
 ] as const;
 
-// Champs imprimes sur la carte PDF (voir card-template cote backend)
+// Champs imprimes sur la carte PDF (voir card-pdf.ts cote backend)
 const CARD_FIELDS: (keyof EditForm)[] = [
   'firstName',
   'lastName',
-  'birthYear',
+  'phone',
   'originDistrict',
+  'originLocality',
   'city',
   'state',
 ];
@@ -68,6 +74,7 @@ function fromMember(m: Member): EditForm {
     lastName: m.lastName,
     birthYear: formatYear(m.birthDate),
     originDistrict: m.originDistrict,
+    originLocality: m.originLocality ?? '',
     addressLine: m.addressLine,
     state: m.state,
     city: m.city,
@@ -197,14 +204,25 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             onChange={(e) => update('birthYear', e.target.value.replace(/\D/g, '').slice(0, 4))}
           />
           <Input
-            label="Ville / district d'origine"
+            label="Ville d'origine"
             name="originDistrict"
             autoComplete="off"
+            placeholder="Lelouma"
             required
             value={form.originDistrict}
             onChange={(e) => update('originDistrict', e.target.value)}
           />
         </div>
+
+        <Input
+          label="Localite d'origine"
+          name="originLocality"
+          autoComplete="off"
+          placeholder="Korbe ou Sagale"
+          required
+          value={form.originLocality}
+          onChange={(e) => update('originLocality', e.target.value)}
+        />
 
         <div className={ROW_WIDE_NARROW}>
           <Input
@@ -227,7 +245,7 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
 
         <div className={ROW_WIDE_NARROW}>
           <Input
-            label="Ville"
+            label="Ville de residence"
             name="city"
             autoComplete="off"
             required
@@ -252,6 +270,7 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             label="Telephone portable"
             name="phone"
             type="tel"
+            placeholder="+1 (718) 555-0123"
             autoComplete="off"
             required
             value={form.phone}

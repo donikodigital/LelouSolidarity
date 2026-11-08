@@ -1,4 +1,7 @@
 //web/components/forms/MemberForm.tsx
+// v1.3 — nouveau champ « Localité d'origine » (section Origine : ville d'origine puis
+// localité, l'une sous l'autre), « Ville de résidence », et téléphone avec indicatif
+// +1 (saisie des 10 chiffres, mise en forme automatique « (718) 555-0123 »).
 'use client';
 
 import { ComponentType, FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
@@ -8,6 +11,7 @@ import {
   AlertCircle,
   Ban,
   CheckCircle2,
+  Compass,
   Loader2,
   Lock,
   Mail,
@@ -21,6 +25,7 @@ import { Button } from '@/components/ui/Button';
 import { PhotoDropzone } from '@/components/ui/PhotoDropzone';
 import { Logo } from '@/components/layout/Logo';
 import { apiPublic, ApiError } from '@/lib/api';
+import { formatUsPhoneInput, parsePhone } from '@/lib/format';
 
 interface FormState {
   code: string;
@@ -28,6 +33,7 @@ interface FormState {
   lastName: string;
   birthYear: string;
   originDistrict: string;
+  originLocality: string;
   addressLine: string;
   city: string;
   state: string;
@@ -42,6 +48,7 @@ const initialState: FormState = {
   lastName: '',
   birthYear: '',
   originDistrict: '',
+  originLocality: '',
   addressLine: '',
   city: '',
   state: '',
@@ -257,6 +264,15 @@ export function MemberForm() {
       return;
     }
 
+    // Téléphone saisi à la main : 10 chiffres (l'indicatif +1 est ajouté automatiquement).
+    // Si le numéro vient de la demande, il est verrouillé et le serveur le met en forme.
+    if (!prefill && form.phone.replace(/\D/g, '').length !== 10) {
+      setSubmitError(
+        'Numéro de téléphone invalide : indiquez les 10 chiffres du numéro américain, par exemple (718) 555-0123.',
+      );
+      return;
+    }
+
     if (!photo) {
       setPhotoError('La photo d’identité est obligatoire.');
       return;
@@ -270,6 +286,7 @@ export function MemberForm() {
       // Le code vient toujours du lien, jamais d'un champ modifiable
       const values: Record<string, string> = { ...rest, code };
       if (prefill) Object.assign(values, prefill); // le serveur les impose aussi
+      else values.phone = `+1 ${form.phone.trim()}`;
       Object.entries(values).forEach(([key, value]) => body.append(key, value));
       // Le backend attend toujours "birthDate" : on envoie l'année au 1er janvier
       body.append('birthDate', `${birthYear}-01-01`);
@@ -297,6 +314,12 @@ export function MemberForm() {
       setSubmitting(false);
     }
   }
+
+  // Téléphone : « +1 » devant un numéro américain. Un numéro verrouillé issu
+  // de la demande est affiché en forme américaine s'il en est un, tel quel sinon.
+  const phoneParts = parsePhone(form.phone);
+  const phoneIsUs = prefill ? phoneParts.us : true;
+  const phoneDisplay = prefill ? phoneParts.national : form.phone;
 
   // ---------- Écrans « message » ----------
 
@@ -495,14 +518,32 @@ export function MemberForm() {
                 update('birthYear', e.target.value.replace(/\D/g, '').slice(0, 4))
               }
             />
-            <Input
-              label="Ville / district d'origine"
-              name="originDistrict"
-              required
-              value={form.originDistrict}
-              onChange={(e) => update('originDistrict', e.target.value)}
-            />
           </div>
+        </section>
+
+        {/* Origine : ville d'origine, puis localité juste en dessous */}
+        <section className="flex flex-col gap-4">
+          <SectionTitle icon={Compass}>Origine</SectionTitle>
+          <Input
+            label="Ville d’origine"
+            name="originDistrict"
+            placeholder="Lélouma"
+            autoCapitalize="words"
+            required
+            maxLength={120}
+            value={form.originDistrict}
+            onChange={(e) => update('originDistrict', e.target.value)}
+          />
+          <Input
+            label="Localité d’origine"
+            name="originLocality"
+            placeholder="Korbé ou Sagalé"
+            autoCapitalize="words"
+            required
+            maxLength={120}
+            value={form.originLocality}
+            onChange={(e) => update('originLocality', e.target.value)}
+          />
         </section>
 
         {/* Résidence */}
@@ -528,7 +569,7 @@ export function MemberForm() {
           </div>
           <div className={ROW_WIDE_NARROW}>
             <Input
-              label="Ville"
+              label="Ville de résidence"
               name="city"
               autoComplete="address-level2"
               required
@@ -557,12 +598,16 @@ export function MemberForm() {
               label="Téléphone portable"
               name="phone"
               type="tel"
-              autoComplete="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder="(718) 555-0123"
               required
               disabled={!!prefill}
               readOnly={!!prefill}
-              value={form.phone}
-              onChange={(e) => update('phone', e.target.value)}
+              maxLength={prefill ? 30 : 14}
+              leading={phoneIsUs ? '+1' : undefined}
+              value={phoneDisplay}
+              onChange={(e) => update('phone', formatUsPhoneInput(e.target.value))}
             />
             <Input
               label="Adresse e-mail"

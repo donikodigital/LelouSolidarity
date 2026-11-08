@@ -1,17 +1,19 @@
 //web/components/ui/Input.tsx
 'use client';
 
-import { InputHTMLAttributes, forwardRef, useState } from 'react';
+import { InputHTMLAttributes, ReactNode, forwardRef, useState } from 'react';
 import clsx from 'clsx';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  /** Élément affiché à gauche, dans le champ (ex. indicatif téléphonique « +1 ») */
+  leading?: ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, className, id, type, ...props }, ref) => {
+  ({ label, error, leading, className, id, type, ...props }, ref) => {
     const inputId = id || props.name;
     const isPassword = type === 'password';
     const [visible, setVisible] = useState(false);
@@ -22,6 +24,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {label}
         </label>
         <div className="relative">
+          {leading && (
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center gap-1.5 pl-3.5 text-sm font-semibold text-ocean-700">
+              {leading}
+            </span>
+          )}
           <input
             ref={ref}
             id={inputId}
@@ -34,6 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               // Champ verrouillé : fond grisé, texte atténué, curseur « interdit »
               'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none',
               isPassword && 'pr-11',
+              leading && 'pl-11',
               error
                 ? 'border-red-300 focus:border-red-400 focus:ring-red-200/50'
                 : 'border-slate-200 hover:border-slate-300 focus:border-ocean-500 focus:ring-ocean-300/30',
