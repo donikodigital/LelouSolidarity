@@ -180,8 +180,7 @@ const TEXTS: Record<Locale, Dict> = {
     },
   },
   // Pular (Fuuta Jallon) — première version à faire relire par un locuteur.
-  // Les e-mails destinés aux administrateurs (reset, formRequest) restent en français.
-  ff: {
+    ff: {
     footer: `${THEME.associationName} &mdash; kawtal Leloomaaɓe e Ameriki`,
     logoAlt: `Logo ${THEME.associationName}`,
     hello: 'Assalaamu alaykum,',
@@ -216,27 +215,25 @@ const TEXTS: Record<Locale, Dict> = {
       p1: 'Karte maaɗa kawtaaɗo timmii hannde.',
       p2: 'Tiiɗno, ɗaɓɓu trésorier kawtal ngam yoɓugo cotisation maaɗa, karte maaɗa hesɗitinee.',
     },
-    // E-mail administrateur : français
     reset: {
-      title: 'Réinitialisation de votre mot de passe',
-      p1: `Vous avez demandé la réinitialisation de votre mot de passe administrateur pour <strong>${THEME.associationName}</strong>.`,
-      button: 'Réinitialiser mon mot de passe',
-      note: "Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
+      title: 'Sanjugo sirru maaɗa',
+      p1: `A ƴami sanjugo sirru administrateur maaɗa e <strong>${THEME.associationName}</strong>.`,
+      button: 'Sanjin sirru am',
+      note: 'Lien ngoo ɗon timma e hoore 1. Si a ƴamaaki ɗum, accu imeel ɗoo.',
     },
-    // E-mail administrateur : français
     formRequest: {
-      title: 'Nouvelle demande de formulaire d’adhésion',
-      p1: "Un futur membre demande l'envoi de son formulaire d'adhésion :",
-      firstName: 'Prénom',
-      lastName: 'Nom',
-      city: 'Ville de résidence',
+      title: 'Ƴamol formulaire naatugo kesol',
+      p1: 'Kawtaaɗo keso ɗon ƴama neldugo formulaire naatugo mum:',
+      firstName: 'Innde',
+      lastName: 'Yettoode',
+      city: 'Wuro hoɗorde',
       state: 'État',
-      country: 'Pays',
-      email: 'E-mail',
-      phone: 'Téléphone',
-      language: 'Langue choisie',
-      button: 'Ouvrir la demande',
-      note: 'Vous pouvez aussi répondre directement à cet e-mail : votre réponse sera adressée au membre.',
+      country: 'Leydi',
+      email: 'Imeel',
+      phone: 'Telefon',
+      language: 'Ɗemngal suɓaama',
+      button: 'Maɓɓu ƴamol',
+      note: 'A waawi jaabugo imeel ɗoo hoore maaɗa: jawaabu maaɗa yaha e kawtaaɗo.',
     },
   },
 };

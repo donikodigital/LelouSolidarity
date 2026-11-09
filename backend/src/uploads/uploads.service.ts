@@ -81,7 +81,13 @@ export class UploadsService {
       const uploadStream = this.cloudinary.uploader.upload_stream(
         options,
         (error, result) => {
-          if (error || !result) return reject(error);
+          // Cloudinary peut renvoyer une erreur sans objet Error : on garantit un message lisible dans les logs.
+          if (error || !result) {
+            const e = error as { message?: string; http_code?: number } | undefined;
+            return reject(
+              new Error(`Cloudinary: ${e?.message ?? 'réponse vide'}${e?.http_code ? ` (HTTP ${e.http_code})` : ''}`),
+            );
+          }
           resolve(result);
         },
       );

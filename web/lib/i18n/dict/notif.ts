@@ -24,4 +24,16 @@ export const notif = pair(
     hoursAgo: '{n} h ago',
     daysAgo: '{n} d ago',
   },
+  // Pular (Fuuta Jallon) — première version à faire relire par un locuteur
+  {
+    formRequestTitle: 'Ƴamol formulaire kesol',
+    memberPendingTitle: 'Ƴamol naatugo kesol',
+    cardExpiringTitle: 'Karte hesɗitinee',
+    cardExpiringBody: '{name} · timmoto nde {date}',
+    cardExpiredTitle: 'Karte timmii',
+    justNow: 'Jooni jooni',
+    minutesAgo: 'Ko ɗum waɗi minti {n}',
+    hoursAgo: 'Ko ɗum waɗi hoore {n}',
+    daysAgo: 'Ko ɗum waɗi nyalaade {n}',
+  },
 );

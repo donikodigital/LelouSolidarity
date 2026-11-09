@@ -45,15 +45,15 @@ const SUBJECTS: Record<Locale, Record<string, string>> = {
     expired: 'Your card has expired - LELOU SOLIDARITY',
     formRequest: 'New form request',
   },
-  // Pular (Fuuta Jallon) — à faire relire ; l'objet admin reste en français
+  // Pular (Fuuta Jallon) — à faire relire
   ff: {
     access: 'Lien maaɗa ngam formulaire naatugo - LELOU SOLIDARITY',
-    reset: 'Réinitialisation de mot de passe - LELOU SOLIDARITY',
+    reset: 'Sanjugo sirru - LELOU SOLIDARITY',
     received: 'Ƴamol hebaama - LELOU SOLIDARITY',
     cardReady: 'Karte maaɗa kawtaaɗo LELOU SOLIDARITY',
     reminder: 'Karte maaɗa ɗon hesɗitina - LELOU SOLIDARITY',
     expired: 'Karte maaɗa timmii - LELOU SOLIDARITY',
-    formRequest: 'Nouvelle demande de formulaire',
+    formRequest: 'Ƴamol formulaire kesol',
   },
 };
 

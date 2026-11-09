@@ -171,6 +171,30 @@ const FF_PAIRS: [string, string][] = [
     'Votre demande n’a pas pu être enregistrée. Votre lien reste valable : merci de réessayer dans quelques instants.',
     'Ƴamol maaɗa winndaaka. Lien maaɗa ɗon hoolaa: ɗaɓɓitu ɓaawo seeɗa.',
   ],
+  // --- Espace administrateur
+  ['Identifiants incorrects', 'Imeel malla sirru wooɗaa.'],
+  ['Mot de passe trop court', 'Sirru ɗoo juutaaki.'],
+  [
+    'Le mot de passe doit contenir au moins 8 caracteres',
+    'Sirru haani yoga 8 limle malla ɓuri.',
+  ],
+  [
+    'Si un compte existe avec cet e-mail, un lien de reinitialisation a ete envoye.',
+    'Si konte woni e imeel ɗoo, lien sanjugo sirru neldaama.',
+  ],
+  [
+    'Ce lien de reinitialisation est invalide ou a expire.',
+    'Lien sanjugo ngoo wooɗaa malla timmii.',
+  ],
+  ['Mot de passe mis a jour avec succes.', 'Sirru sanjaama.'],
+  ['Compte administrateur introuvable', 'Konte administrateur tawaaka.'],
+  ['Session expirée, merci de vous reconnecter', 'Naatugo maaɗa timmii, naatu fahin.'],
+  ['Membre introuvable.', 'Kawtaaɗo tawaaka.'],
+  ['Carte introuvable.', 'Karte tawaaka.'],
+  ["Code d'acces introuvable.", 'Kodo naatugo tawaaka.'],
+  ['Non autorisé', 'A haani naatugo.'],
+  ['Accès refusé', 'Ɗum haɗaama.'],
+  ['Aucune modification à enregistrer.', 'Sanjaaji walaa ngam winndugo.'],
   ['Erreur interne du serveur', 'Ko ɗum waɗi e serveur. Ɗaɓɓitu ɓaawo seeɗa.'],
   [
     'Trop de requêtes, merci de réessayer un peu plus tard.',

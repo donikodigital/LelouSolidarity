@@ -14,7 +14,8 @@ export const LOCALE_META: Record<Locale, { label: string; short: string; intl: s
   fr: { label: 'Français', short: 'FR', intl: 'fr-FR' },
   en: { label: 'English', short: 'EN', intl: 'en-US' },
   // Pular (Fuuta Jallon) : code ISO « ff » (peul) pour le navigateur
-  ff: { label: 'Pular', short: 'PU', intl: 'ff-Latn-GN' },
+  // Dates écrites en français : noms de jours/mois pular non validés
+  ff: { label: 'Pular', short: 'PU', intl: 'fr-FR' },
 };
 
 export function isLocale(value: unknown): value is Locale {
