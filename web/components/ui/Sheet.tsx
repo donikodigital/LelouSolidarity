@@ -46,7 +46,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="animate-sheet-up absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-16 sm:max-h-[calc(100dvh-5rem)] sm:w-[24rem] sm:rounded-2xl sm:pb-0"
+        className="animate-sheet-up absolute inset-x-0 bottom-0 flex max-h-[92%] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-16 sm:max-h-[calc(100dvh-5rem)] sm:w-[24rem] sm:rounded-2xl sm:pb-0"
       >
         {/* Poignée (mobile) */}
         <div className="mx-auto mt-2.5 h-1.5 w-10 flex-shrink-0 rounded-full bg-slate-200 sm:hidden" />

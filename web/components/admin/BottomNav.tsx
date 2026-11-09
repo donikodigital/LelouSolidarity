@@ -24,6 +24,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label={t.admin.nav.main}
+      data-hide-on-keyboard
       className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden"
     >
       <div className="mx-auto flex max-w-md items-stretch justify-between rounded-3xl bg-white/90 p-1.5 shadow-[0_10px_35px_rgba(10,60,90,0.22)] ring-1 ring-ocean-100 backdrop-blur-xl">

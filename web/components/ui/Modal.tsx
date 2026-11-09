@@ -44,7 +44,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       <div className="absolute inset-0 bg-ocean-900/40" onClick={onClose} aria-hidden="true" />
       {/* max-h + overflow : sur mobile, un long formulaire reste accessible en defilant */}
       <Card
-        className={`relative z-10 w-full ${sizes[size]} max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5 shadow-card-hover sm:p-6`}
+        className={`relative z-10 w-full ${sizes[size]} max-h-full overflow-y-auto overscroll-contain p-5 shadow-card-hover sm:p-6`}
       >
         <button
           type="button"

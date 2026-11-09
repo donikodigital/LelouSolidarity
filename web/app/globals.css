@@ -4,6 +4,13 @@
 
 html {
   scroll-behavior: smooth;
+  /* Un champ amené à l'écran ne reste jamais collé au bord (ou sous la barre du bas) */
+  scroll-padding-block: 6rem;
+}
+
+/* Clavier du téléphone ouvert : on masque ce qui est fixé en bas de l'écran (barre de navigation) */
+html[data-keyboard='open'] [data-hide-on-keyboard] {
+  display: none;
 }
 
 body {
