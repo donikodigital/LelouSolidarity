@@ -20,6 +20,16 @@ export function normalizeKey(message: string): string {
 
 // [français, anglais]
 const PAIRS: [string, string][] = [
+  // --- Page « Mon profil » du gérant
+  ['Mot de passe actuel incorrect.', 'Current password is incorrect.'],
+  ['Le nouveau mot de passe doit être différent de l’actuel.', 'The new password must be different from the current one.'],
+  ['Le mot de passe est trop long (72 caractères maximum).', 'The password is too long (72 characters maximum).'],
+  ['Cette adresse e-mail est déjà utilisée.', 'This e-mail address is already in use.'],
+  ['Cette adresse e-mail est déjà celle de votre compte.', 'This is already the e-mail address of your account.'],
+  ['Le nom est trop long (80 caractères maximum).', 'The name is too long (80 characters maximum).'],
+  ['Aucune photo reçue.', 'No photo received.'],
+  ['La photo de profil doit être au format JPG, PNG ou WebP.', 'The profile photo must be a JPG, PNG or WebP image.'],
+  ['La photo de profil ne doit pas dépasser 5 Mo.', 'The profile photo must not exceed 5 MB.'],
   // --- Formulaire de demande
   ['Le prénom est obligatoire.', 'First name is required.'],
   ['Le prénom est trop long.', 'First name is too long.'],

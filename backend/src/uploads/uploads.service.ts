@@ -1,4 +1,5 @@
 //backend/src/uploads/uploads.service.ts
+// v1.1 — photo de profil du gérant (uploadAdminAvatar / deleteAdminAvatar).
 import { Inject, Injectable } from '@nestjs/common';
 import { UploadApiResponse, v2 as CloudinaryType } from 'cloudinary';
 import { randomBytes } from 'crypto';
@@ -36,6 +37,26 @@ export class UploadsService {
       public_id: `photo_${Date.now()}_${randomSuffix()}`,
       context: { email: memberEmail },
     });
+  }
+
+  /**
+   * Televerse la photo de profil du gerant : recadree en carre de 512 px autour du
+   * visage et compressee par Cloudinary, quelle que soit la taille d'origine.
+   */
+  uploadAdminAvatar(buffer: Buffer, adminId: string): Promise<UploadApiResponse> {
+    return this.uploadBuffer(buffer, {
+      folder: 'lelou-solidarity/admins',
+      public_id: `admin_${adminId}_${Date.now()}_${randomSuffix()}`,
+      transformation: [
+        { width: 512, height: 512, crop: 'fill', gravity: 'face' },
+        { quality: 'auto', fetch_format: 'auto' },
+      ],
+    });
+  }
+
+  /** Supprime la photo de profil du gerant. */
+  deleteAdminAvatar(publicId: string): Promise<string> {
+    return this.destroy(publicId, 'image');
   }
 
   /** Televerse le PDF genere de la carte de membre. */

@@ -3,9 +3,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Inbox, KeyRound, LayoutDashboard, Users } from 'lucide-react';
+import { Inbox, KeyRound, LayoutDashboard, UserRound, Users } from 'lucide-react';
 import clsx from 'clsx';
+import { Avatar } from './Avatar';
 import { useAdminData } from './NotificationsProvider';
+import { useSession } from './SessionProvider';
 import { useI18n } from '@/lib/i18n/I18nProvider';
 
 const items = [
@@ -13,6 +15,7 @@ const items = [
   { href: '/admin/demandes', key: 'requests', icon: Inbox },
   { href: '/admin/membres', key: 'members', icon: Users },
   { href: '/admin/codes', key: 'codes', icon: KeyRound },
+  { href: '/admin/profil', key: 'profile', icon: UserRound },
 ] as const;
 
 /** Barre de navigation flottante en bas de l'écran (mobile uniquement). */
@@ -20,6 +23,7 @@ export function BottomNav() {
   const { t } = useI18n();
   const pathname = usePathname();
   const { requestsToHandle } = useAdminData();
+  const { session } = useSession();
 
   return (
     <nav
@@ -40,13 +44,23 @@ export function BottomNav() {
             >
               <span
                 className={clsx(
-                  'relative flex h-9 w-14 items-center justify-center rounded-2xl transition-all duration-300',
+                  'relative flex h-9 w-12 items-center justify-center rounded-2xl transition-all duration-300',
                   active
                     ? '-translate-y-1 bg-gradient-to-br from-ocean-600 to-ocean-800 text-white shadow-lg shadow-ocean-800/30'
                     : 'text-ocean-400 group-hover:bg-ocean-50 group-hover:text-ocean-600 group-active:scale-90',
                 )}
               >
-                <Icon className="h-5 w-5" />
+                {key === 'profile' && session.admin.avatarUrl ? (
+                  <Avatar
+                    name={session.admin.name}
+                    email={session.admin.email}
+                    src={session.admin.avatarUrl}
+                    size={26}
+                    className={clsx('transition-shadow', active && 'ring-2 ring-white/80')}
+                  />
+                ) : (
+                  <Icon className="h-5 w-5" />
+                )}
                 {badge > 0 && (
                   <span
                     key={badge}

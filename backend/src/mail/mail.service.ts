@@ -1,4 +1,5 @@
 //backend/src/mail/mail.service.ts
+// v1.8 — sendSecurityNotice() : alerte de sécurité du gérant (mot de passe, e-mail, appareils).
 // v1.7 — chaque envoi reçoit la langue du destinataire (objets, gabarits, dates, nom du PDF).
 // v1.6 — sendFormRequestNotification() : prévient les administrateurs d'une
 // demande de formulaire (reply-to = adresse du membre).
@@ -23,6 +24,7 @@ import {
   expirationReminderEmail,
   formRequestEmail,
   resetPasswordEmail,
+  securityNoticeEmail,
   submissionReceivedEmail,
 } from './templates';
 
@@ -35,6 +37,7 @@ const SUBJECTS: Record<Locale, Record<string, string>> = {
     reminder: 'Votre carte arrive à expiration - LELOU SOLIDARITY',
     expired: 'Votre carte a expiré - LELOU SOLIDARITY',
     formRequest: 'Nouvelle demande de formulaire',
+    security: 'Alerte de sécurité - LELOU SOLIDARITY',
   },
   en: {
     access: 'Your access to the membership form - LELOU SOLIDARITY',
@@ -44,6 +47,7 @@ const SUBJECTS: Record<Locale, Record<string, string>> = {
     reminder: 'Your card is about to expire - LELOU SOLIDARITY',
     expired: 'Your card has expired - LELOU SOLIDARITY',
     formRequest: 'New form request',
+    security: 'Security alert - LELOU SOLIDARITY',
   },
   // Pular (Fuuta Jallon) — à faire relire
   ff: {
@@ -54,6 +58,8 @@ const SUBJECTS: Record<Locale, Record<string, string>> = {
     reminder: 'Karte maaɗa ɗon hesɗitina - LELOU SOLIDARITY',
     expired: 'Karte maaɗa timmii - LELOU SOLIDARITY',
     formRequest: 'Ƴamol formulaire kesol',
+    // Espace administrateur : non traduit en pular (français)
+    security: 'Alerte de sécurité - LELOU SOLIDARITY',
   },
 };
 
@@ -89,6 +95,29 @@ export class MailService {
       email,
       SUBJECTS[locale].reset,
       resetPasswordEmail(name, resetUrl, this.logoUrl, locale),
+    );
+  }
+
+  /**
+   * Alerte de sécurité adressée au gérant après un changement sensible de son compte.
+   * Pour un changement d'adresse, `to` est l'ancienne adresse et `newEmail` la nouvelle.
+   */
+  async sendSecurityNotice(
+    to: string,
+    name: string,
+    kind: 'password' | 'email' | 'sessions',
+    locale: Locale = DEFAULT_LOCALE,
+    newEmail?: string,
+  ) {
+    const dateLabel = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'fr-FR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'UTC',
+    }).format(new Date());
+    return this.send(
+      to,
+      SUBJECTS[locale].security,
+      securityNoticeEmail(name, kind, newEmail, `${dateLabel} UTC`, this.logoUrl, locale),
     );
   }
 

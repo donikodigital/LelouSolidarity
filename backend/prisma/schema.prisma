@@ -26,6 +26,18 @@ model Admin {
   name                String?
   resetToken          String?   @unique
   resetTokenExpiresAt DateTime?
+
+  // Profil du gérant (page « Mon profil »)
+  phone               String?
+  avatarUrl           String?   // photo de profil (Cloudinary)
+  avatarPublicId      String?
+  notifyFormRequests  Boolean   @default(true) // e-mail à chaque nouvelle demande de formulaire
+
+  // Sécurité
+  lastLoginAt         DateTime? // dernière connexion
+  previousLoginAt     DateTime? // connexion précédente (celle d'avant la session en cours)
+  sessionsRevokedAt   DateTime? // « se déconnecter partout » : les jetons émis avant sont refusés
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

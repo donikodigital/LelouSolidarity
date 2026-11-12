@@ -1,4 +1,7 @@
 //backend/src/auth/auth.service.ts
+// v1.2 — la connexion enregistre la date (dernière connexion + connexion précédente)
+// et renvoie le profil complet du gérant (photo, téléphone...) ; le jeton passe
+// par adminTokenPayload() pour rester identique à celui des changements de mot de passe.
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -8,7 +11,7 @@ import { MailService } from '../mail/mail.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { passwordFingerprint } from './password-fingerprint';
+import { adminTokenPayload, toPublicAdmin } from './admin-session';
 import { Locale } from '../common/i18n';
 
 // Hash factice : comparé quand l'e-mail est inconnu, pour que la réponse prenne
@@ -33,15 +36,17 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants incorrects');
     }
 
-    const accessToken = await this.jwt.signAsync({
-      sub: admin.id,
-      email: admin.email,
-      pv: passwordFingerprint(admin.passwordHash),
+    // Journal de connexion : la « connexion précédente » est celle d'avant celle-ci.
+    const updated = await this.prisma.admin.update({
+      where: { id: admin.id },
+      data: { previousLoginAt: admin.lastLoginAt, lastLoginAt: new Date() },
     });
+
+    const accessToken = await this.jwt.signAsync(adminTokenPayload(updated));
 
     return {
       accessToken,
-      admin: { id: admin.id, email: admin.email, name: admin.name },
+      admin: toPublicAdmin(updated),
     };
   }
 

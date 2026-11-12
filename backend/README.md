@@ -88,6 +88,14 @@ L'API ecoute sur `http://localhost:4000/api` (port configurable via `PORT`).
 | GET | `/admin/members/:id` | admin | Detail d'un membre |
 | POST | `/admin/members/:id/card/generate` | admin | Genere/renouvelle/reimprime la carte |
 | GET | `/admin/members/:id/card/download` | admin | Redirige vers le PDF de la carte |
+| GET | `/admin/profile` | admin | Profil du gerant (nom, telephone, photo, dernieres connexions) |
+| PATCH | `/admin/profile` | admin | Modifie nom, telephone, alertes e-mail des demandes de formulaire |
+| POST | `/admin/profile/password` | admin | Change le mot de passe (400 si l'actuel est faux) - renvoie un nouveau JWT, alerte e-mail - 5 essais/10 min |
+| POST | `/admin/profile/email` | admin | Change l'adresse e-mail (mot de passe requis) - alerte envoyee a l'ancienne adresse - 5 essais/10 min |
+| POST | `/admin/profile/avatar` | admin | Photo de profil (champ `avatar`, JPG/PNG/WebP, 5 Mo max) |
+| DELETE | `/admin/profile/avatar` | admin | Supprime la photo de profil |
+| POST | `/admin/profile/sessions/revoke` | admin | Deconnecte tous les autres appareils (renvoie un JWT pour l'appareil courant) |
+| GET | `/admin/export/members` | admin | Export CSV de tous les membres (compatible Excel) |
 | GET | `/public/verify/:token` | public | Statut d'une carte (utilise par la page du QR code) |
 
 Les routes `admin/*` attendent un header `Authorization: Bearer <token>`

@@ -6,6 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { AdminProfileModule } from './admin-profile/admin-profile.module';
 import { AccessCodesModule } from './access-codes/access-codes.module';
 import { FormRequestsModule } from './form-requests/form-requests.module';
 import { MembersModule } from './members/members.module';
@@ -31,6 +32,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     ]),
     PrismaModule,
     AuthModule,
+    AdminProfileModule,
     AccessCodesModule,
     FormRequestsModule,
     MembersModule,

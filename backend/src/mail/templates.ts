@@ -2,6 +2,7 @@
 // Gabarits d'e-mails en HTML simple (compatible avec la plupart des clients
 // mail). Les couleurs viennent de src/common/theme.ts - un seul endroit à
 // modifier pour tout répercuter (carte + e-mails).
+// v1.8 — alerte de sécurité (securityNoticeEmail) : mot de passe, e-mail ou appareils.
 // v1.7 — Pular (ff) ajouté ; v1.6 — e-mails en français et en anglais : chaque gabarit reçoit la langue du
 // destinataire (`locale`, voir common/i18n.ts). Les textes sont dans l'objet TEXTS.
 // v1.5 — nouvel e-mail destiné aux administrateurs : demande de formulaire
@@ -50,6 +51,12 @@ type Dict = {
   reminder: { title: string; p1: (date: string) => string; p2: string };
   expired: { title: string; p1: string; p2: string };
   reset: { title: string; p1: string; button: string; note: string };
+  security: {
+    password: { title: string; p1: string };
+    email: { title: string; p1: (newEmail: string) => string };
+    sessions: { title: string; p1: string };
+    note: string;
+  };
   formRequest: {
     title: string;
     p1: string;
@@ -108,6 +115,22 @@ const TEXTS: Record<Locale, Dict> = {
       button: 'Réinitialiser mon mot de passe',
       note: "Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
     },
+    security: {
+      password: {
+        title: 'Votre mot de passe a été modifié',
+        p1: `Le mot de passe de votre compte administrateur <strong>${THEME.associationName}</strong> vient d'être modifié.`,
+      },
+      email: {
+        title: 'Votre adresse e-mail a été modifiée',
+        p1: (newEmail) =>
+          `L'adresse e-mail de votre compte administrateur est désormais <strong>${escapeHtml(newEmail)}</strong>. Ce message est envoyé à l'ancienne adresse pour vous en informer.`,
+      },
+      sessions: {
+        title: 'Vos appareils ont été déconnectés',
+        p1: "Vous avez choisi de vous déconnecter de tous les appareils. Seul l'appareil utilisé pour cette action est resté connecté.",
+      },
+      note: "Si vous n'êtes pas à l'origine de cette action, réinitialisez immédiatement votre mot de passe depuis la page de connexion (« Mot de passe oublié ») et prévenez les autres administrateurs.",
+    },
     formRequest: {
       title: 'Nouvelle demande de formulaire d’adhésion',
       p1: "Un futur membre demande l'envoi de son formulaire d'adhésion :",
@@ -163,6 +186,22 @@ const TEXTS: Record<Locale, Dict> = {
       p1: `You requested a password reset for your administrator account at <strong>${THEME.associationName}</strong>.`,
       button: 'Reset my password',
       note: 'This link expires in 1 hour. If you did not make this request, please ignore this e-mail.',
+    },
+    security: {
+      password: {
+        title: 'Your password was changed',
+        p1: `The password of your <strong>${THEME.associationName}</strong> administrator account has just been changed.`,
+      },
+      email: {
+        title: 'Your e-mail address was changed',
+        p1: (newEmail) =>
+          `The e-mail address of your administrator account is now <strong>${escapeHtml(newEmail)}</strong>. This message is sent to the previous address to let you know.`,
+      },
+      sessions: {
+        title: 'Your devices were signed out',
+        p1: 'You chose to sign out of all devices. Only the device used for this action stayed signed in.',
+      },
+      note: "If you did not do this, reset your password right away from the sign-in page (“Forgot your password?”) and warn the other administrators.",
     },
     formRequest: {
       title: 'New membership form request',
@@ -220,6 +259,22 @@ const TEXTS: Record<Locale, Dict> = {
       p1: `A ƴami sanjugo sirru administrateur maaɗa e <strong>${THEME.associationName}</strong>.`,
       button: 'Sanjin sirru am',
       note: 'Lien ngoo ɗon timma e hoore 1. Si a ƴamaaki ɗum, accu imeel ɗoo.',
+    },
+    security: {
+      password: {
+        title: 'Votre mot de passe a été modifié',
+        p1: `Le mot de passe de votre compte administrateur <strong>${THEME.associationName}</strong> vient d'être modifié.`,
+      },
+      email: {
+        title: 'Votre adresse e-mail a été modifiée',
+        p1: (newEmail) =>
+          `L'adresse e-mail de votre compte administrateur est désormais <strong>${escapeHtml(newEmail)}</strong>. Ce message est envoyé à l'ancienne adresse pour vous en informer.`,
+      },
+      sessions: {
+        title: 'Vos appareils ont été déconnectés',
+        p1: "Vous avez choisi de vous déconnecter de tous les appareils. Seul l'appareil utilisé pour cette action est resté connecté.",
+      },
+      note: "Si vous n'êtes pas à l'origine de cette action, réinitialisez immédiatement votre mot de passe depuis la page de connexion (« Mot de passe oublié ») et prévenez les autres administrateurs.",
     },
     formRequest: {
       title: 'Ƴamol formulaire naatugo kesol',
@@ -448,6 +503,35 @@ export function formRequestEmail(
         </a>
       </p>
       <p style="color:#8AA0AE;font-size:13px;">${t.note}</p>
+    `,
+    logoUrl,
+    locale,
+  );
+}
+
+/**
+ * Alerte envoyée au gérant après un changement sensible de son compte
+ * (mot de passe, adresse e-mail, déconnexion de tous les appareils).
+ */
+export function securityNoticeEmail(
+  name: string,
+  kind: 'password' | 'email' | 'sessions',
+  newEmail: string | undefined,
+  dateLabel: string,
+  logoUrl: string,
+  locale: Locale = 'fr',
+) {
+  const t = TEXTS[locale];
+  const block = t.security[kind];
+  const title = block.title;
+  const intro = kind === 'email' ? t.security.email.p1(newEmail ?? '') : (block as { p1: string }).p1;
+  return layout(
+    title,
+    `
+      <p>${name ? t.helloName(name) : t.hello}</p>
+      <p>${intro}</p>
+      <p style="color:#5B7285;font-size:13px;">${escapeHtml(dateLabel)}</p>
+      <p style="margin-top:20px;padding:12px 14px;background:#FFF8E6;border-left:3px solid ${THEME.accentGold};border-radius:6px;font-size:13px;">${t.security.note}</p>
     `,
     logoUrl,
     locale,

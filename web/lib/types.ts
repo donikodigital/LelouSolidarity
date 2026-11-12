@@ -57,9 +57,31 @@ export interface FormRequest {
   createdAt: string;
 }
 
+/** Profil du gérant tel que renvoyé par l'API (jamais de mot de passe). */
+export interface AdminProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  /** Reçoit un e-mail à chaque nouvelle demande de formulaire. */
+  notifyFormRequests: boolean;
+  createdAt: string;
+  /** Connexion en cours. */
+  lastLoginAt: string | null;
+  /** Connexion d'avant : c'est elle qui permet de repérer un accès inattendu. */
+  previousLoginAt: string | null;
+}
+
+/**
+ * Session enregistrée dans le navigateur. Les champs du profil sont facultatifs :
+ * une session créée avant l'arrivée de la page profil ne les contient pas encore
+ * (ils sont rechargés en silence à l'ouverture de l'espace admin).
+ */
 export interface AdminSession {
   accessToken: string;
-  admin: { id: string; email: string; name: string | null };
+  admin: Pick<AdminProfile, 'id' | 'email' | 'name'> &
+    Partial<Omit<AdminProfile, 'id' | 'email' | 'name'>>;
 }
 
 export interface VerifyResult {

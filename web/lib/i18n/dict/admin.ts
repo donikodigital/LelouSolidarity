@@ -1,5 +1,6 @@
 //web/lib/i18n/dict/admin.ts
 import { pair } from '../pair';
+import { accountEn, accountFr } from './account';
 
 export const admin = pair(
   {
@@ -39,6 +40,7 @@ export const admin = pair(
       codes: 'Codes',
       main: 'Navigation principale',
       logout: 'Se déconnecter',
+      profile: 'Profil',
     },
     topbar: {
       notifications: 'Notifications',
@@ -47,11 +49,14 @@ export const admin = pair(
     },
     profile: {
       title: 'Mon profil',
-      role: 'Administrateur · {name}',
+      role: 'Gérant · {name}',
+      view: 'Mon profil',
     },
     dashboard: {
       hello: 'Bonjour, {name}',
-      helloNoName: 'Bonjour',
+      helloNoName: 'Bienvenue',
+      completeProfile: 'Compléter mon profil ({percent} %)',
+      viewProfile: 'Voir mon profil',
       overview: 'Vue d’ensemble des membres et des cartes.',
       registeredMembers: 'Membres enregistrés',
       formsToSend: 'Formulaires à envoyer',
@@ -217,6 +222,7 @@ export const admin = pair(
       allRead: 'Tout est lu',
       markAll: 'Tout marquer comme lu',
     },
+    account: accountFr,
     session: { missingProvider: 'useSession doit être utilisé dans SessionProvider' },
   },
   {
@@ -255,6 +261,7 @@ export const admin = pair(
       codes: 'Codes',
       main: 'Main navigation',
       logout: 'Sign out',
+      profile: 'Profile',
     },
     topbar: {
       notifications: 'Notifications',
@@ -263,11 +270,14 @@ export const admin = pair(
     },
     profile: {
       title: 'My profile',
-      role: 'Administrator · {name}',
+      role: 'Manager · {name}',
+      view: 'My profile',
     },
     dashboard: {
       hello: 'Hello, {name}',
-      helloNoName: 'Hello',
+      helloNoName: 'Welcome',
+      completeProfile: 'Complete my profile ({percent}%)',
+      viewProfile: 'View my profile',
       overview: 'Overview of members and cards.',
       registeredMembers: 'Registered members',
       formsToSend: 'Forms to send',
@@ -433,6 +443,7 @@ export const admin = pair(
       allRead: 'All read',
       markAll: 'Mark all as read',
     },
+    account: accountEn,
     session: { missingProvider: 'useSession must be used within SessionProvider' },
   },
   // Pular (Fuuta Jallon) — première version à faire relire par un locuteur
@@ -473,6 +484,7 @@ export const admin = pair(
       codes: 'Kodoy',
       main: 'Laawol mawngol',
       logout: 'Yaltu',
+      profile: 'Profil',
     },
     topbar: {
       notifications: 'Anndinooje',
@@ -481,11 +493,14 @@ export const admin = pair(
     },
     profile: {
       title: 'Profil am',
-      role: 'Administrateur · {name}',
+      role: 'Gérant · {name}',
+      view: 'Profil am',
     },
     dashboard: {
       hello: 'Assalaamu alaykum, {name}',
       helloNoName: 'Assalaamu alaykum',
+      completeProfile: 'Compléter mon profil ({percent} %)',
+      viewProfile: 'Voir mon profil',
       overview: 'Ko woni e kawtaaɓe e karte.',
       registeredMembers: 'Kawtaaɓe winndaaɓe',
       formsToSend: 'Formulaire ngam neldugo',
@@ -651,6 +666,7 @@ export const admin = pair(
       allRead: 'Fuu bi’aama',
       markAll: 'Winndu fuu « bi’aama »',
     },
+    account: accountFr,
     session: { missingProvider: 'useSession must be used within SessionProvider' },
   },
 );

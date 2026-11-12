@@ -1,0 +1,8 @@
+PROFIL DU GÉRANT — mode d'emploi
+
+1) Décompressez ce zip à la racine du dépôt (les dossiers backend/ et web/ fusionnent avec les vôtres).
+2) Base de données : appliquez la migration ajoutée
+      cd backend && npx prisma migrate deploy && npx prisma generate
+   (7 colonnes ajoutées à la table Admin ; rien n'est supprimé.)
+3) Relancez le backend puis le web.
+4) À la première ouverture, le profil se charge tout seul. Les sessions existantes restent valables.

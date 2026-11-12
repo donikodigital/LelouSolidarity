@@ -65,7 +65,11 @@ export class FormRequestsService {
     });
 
     try {
-      const admins = await this.prisma.admin.findMany({ select: { email: true } });
+      // Seuls les administrateurs qui n'ont pas désactivé l'alerte (page « Mon profil ») sont prévenus
+      const admins = await this.prisma.admin.findMany({
+        where: { notifyFormRequests: true },
+        select: { email: true },
+      });
       const recipients = admins.map((a) => a.email);
       if (recipients.length > 0) {
         await this.mail.sendFormRequestNotification(recipients, request);
