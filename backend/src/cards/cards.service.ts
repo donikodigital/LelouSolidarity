@@ -1,4 +1,6 @@
 //backend/src/cards/cards.service.ts
+// v2.2 — nouvelle carte : badge « tour de cou » en portrait, une seule face (voir card-pdf.ts).
+// Aucun changement de logique ici : mêmes données, même PDF stocké, même e-mail.
 // v2.1 — la carte imprime le téléphone (au lieu de l'année de naissance) et la
 // localité d'origine du membre.
 // v2.0 — fin de Chromium : le PDF est dessiné avec pdfkit (card-pdf.ts).

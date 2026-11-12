@@ -1,24 +1,17 @@
 //backend/src/cards/card-pdf.ts
+// v2.1 — mention « DEPUIS 2021 » (année de création de l'association) sous le titre.
+// v2.0 — REFONTE : badge « tour de cou » en PORTRAIT (CR80 vertical), une seule
+// face (plus de verso, plus de drapeaux). Le verso (QR code + texte de
+// vérification) est intégré au recto. Une fente de cordon est dessinée en haut.
+// Couleurs de la charte : bleu océan, or, vagues.
 // v1.4 — carte en français ou en anglais selon la langue du membre (`locale`).
-// v1.3 — pas de drapeau devant le téléphone : les drapeaux des USA et de la Guinée
-// (rouge-jaune-vert) sont placés en haut à droite, au-dessus de la pastille de statut.
-// v1.2 — recto : l'année de naissance est remplacée par le téléphone
-// (« +1 (718) 555-0123 ») ; lignes « Ville d'origine », « Localité d'origine »
-// et « Ville de résidence ».
-// v1.1 — nom de l'association en dégradé d'or (comme l'ancienne carte).
-// v1.0 — remplace card-template.ts + Puppeteer/Chromium.
-// La carte (recto + verso empilés sur une page) est dessinée directement en PDF
-// avec pdfkit : aucun navigateur, quelques dizaines de Mo de mémoire seulement,
-// génération en une fraction de seconde. Le design reprend celui de l'ancienne
-// carte : métal bleu nuit, liseré or, motif guilloche, puce d'empreinte, cadre
-// photo, pastille de statut, QR code.
+// La carte est dessinée directement en PDF avec pdfkit : aucun navigateur,
+// quelques dizaines de Mo de mémoire, génération en une fraction de seconde.
 //
 // Toutes les coordonnées sont exprimées en millimètres (le document est mis à
-// l'échelle une seule fois au début) ; les tailles de police reprennent les
-// valeurs en « px » de l'ancien gabarit HTML.
+// l'échelle une seule fois au début) ; les tailles de police sont en « px » CSS.
 import PDFDocument = require('pdfkit');
 import {
-  CARD_GAP_MM,
   CARD_HEIGHT_MM,
   CARD_THEME,
   CARD_WIDTH_MM,
@@ -56,6 +49,7 @@ const CARD_TEXTS: Record<
   {
     status: Record<CardData['status'], string>;
     cardTitle: string;
+    since: string;
     memberBadge: string;
     phone: string;
     originCity: string;
@@ -72,6 +66,7 @@ const CARD_TEXTS: Record<
   fr: {
     status: { ACTIVE: 'ACTIF', EXPIRING_SOON: 'À RENOUVELER', EXPIRED: 'EXPIRÉ' },
     cardTitle: 'CARTE DE MEMBRE',
+    since: 'DEPUIS',
     memberBadge: 'MEMBRE ADHÉRENT',
     phone: 'TÉLÉPHONE',
     originCity: 'VILLE D’ORIGINE',
@@ -81,22 +76,23 @@ const CARD_TEXTS: Record<
     expiresEnd: 'EXPIRE FIN',
     scanPrefix: 'Scannez ce code pour ',
     scanBold: 'vérifier l’authenticité',
-    scanSuffix: 'de cette carte de membre.',
+    scanSuffix: ' de cette carte de membre.',
     pdfTitle: 'Carte de membre',
   },
   en: {
     status: { ACTIVE: 'ACTIVE', EXPIRING_SOON: 'RENEW SOON', EXPIRED: 'EXPIRED' },
     cardTitle: 'MEMBERSHIP CARD',
+    since: 'SINCE',
     memberBadge: 'MEMBER',
     phone: 'PHONE',
     originCity: 'CITY OF ORIGIN',
     originLocality: 'LOCALITY OF ORIGIN',
     residenceCity: 'CITY OF RESIDENCE',
     memberId: 'MEMBER ID',
-    expiresEnd: 'VALID THROUGH',
+    expiresEnd: 'EXPIRES',
     scanPrefix: 'Scan this code to ',
     scanBold: 'verify the authenticity',
-    scanSuffix: 'of this membership card.',
+    scanSuffix: ' of this membership card.',
     pdfTitle: 'Membership card',
   },
   // Pular (Fuuta Jallon) — à faire relire. Les lettres ɓ/ɗ sont remplacées par b/d
@@ -104,6 +100,7 @@ const CARD_TEXTS: Record<
   ff: {
     status: { ACTIVE: 'E HUUWUGO', EXPIRING_SOON: 'HESƊITINA', EXPIRED: 'TIMMII' },
     cardTitle: 'KARTE KAWTAAƊO',
+    since: 'DIGA',
     memberBadge: 'KAWTAAƊO',
     phone: 'TELEFON',
     originCity: 'WURO PUƊƊORDE',
@@ -113,7 +110,7 @@ const CARD_TEXTS: Record<
     expiresEnd: 'TIMMOTO',
     scanPrefix: 'Wanngu QR code ngoo ngam ',
     scanBold: 'hoolaago karte',
-    scanSuffix: 'kawtaaɗo ndee.',
+    scanSuffix: ' kawtaaɗo ndee.',
     pdfTitle: 'Karte kawtaaɗo',
   },
 };
@@ -153,6 +150,12 @@ const BOLD = 'Helvetica-Bold';
 const BORDER = 0.55;
 const FACE_W = CARD_WIDTH_MM - BORDER * 2;
 const FACE_H = CARD_HEIGHT_MM - BORDER * 2;
+const CX = FACE_W / 2;
+
+// Bleus et teintes complémentaires de la charte
+const OCEAN_LIGHT = '#8FC3E3';
+const GOLD_SOFT = '#E3C677';
+const PAGE_BG = '#e9eef2';
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -182,7 +185,7 @@ function safe(value: string | number): string {
       out += ch;
       continue;
     }
-    const base = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const base = ch.normalize('NFD').replace(/[̀-ͯ]/g, '');
     out += base.length > 0 && base.charCodeAt(0) <= 0x7e && base.charCodeAt(0) >= 0x20 ? base[0] : '?';
   }
   return out;
@@ -192,14 +195,14 @@ function statusLabel(data: CardData): string {
   return textsOf(data).status[data.status];
 }
 
-function statusColor(status: CardData['status']): string {
+function statusColor(status: CardData['status'], onLight: boolean): string {
   switch (status) {
     case 'ACTIVE':
-      return '#4ADE80';
+      return onLight ? '#16A34A' : '#4ADE80';
     case 'EXPIRING_SOON':
-      return '#FBBF24';
+      return onLight ? '#D97706' : '#FBBF24';
     case 'EXPIRED':
-      return '#F87171';
+      return onLight ? '#DC2626' : '#F87171';
   }
 }
 
@@ -285,6 +288,17 @@ function drawText(doc: Doc, str: string, x: number, y: number, s: TextStyle) {
   doc.fillColor(s.color, s.alpha ?? 1).text(str, x, y, { lineBreak: false, characterSpacing: spacingMm(s) });
 }
 
+/** Texte centré horizontalement sur `cx` ; renvoie la hauteur de la ligne. */
+function drawCentered(doc: Doc, str: string, cx: number, y: number, s: TextStyle): number {
+  drawText(doc, str, cx - widthOf(doc, str, s) / 2, y, s);
+  return lineHeight(s);
+}
+
+/** Hauteur d'une ligne (mm) pour une taille de police donnée. */
+function lineHeight(s: TextStyle): number {
+  return px(s.size) * 1.15;
+}
+
 /** Raccourcit un texte avec « … » s'il dépasse la largeur disponible. */
 function fitText(doc: Doc, str: string, maxW: number, s: TextStyle): string {
   if (widthOf(doc, str, s) <= maxW) return str;
@@ -301,220 +315,146 @@ function shrinkToFit(doc: Doc, str: string, maxW: number, s: TextStyle, minSize:
 }
 
 // ---------------------------------------------------------------------------
-// Éléments graphiques
+// Éléments graphiques communs
 // ---------------------------------------------------------------------------
 
+/** Remplit la zone située sous (ou au-dessus de) une vague sinusoïdale pleine largeur. */
+function fillWave(
+  doc: Doc,
+  base: number,
+  amp: number,
+  cycles: number,
+  phase: number,
+  side: 'below' | 'above',
+  paint: string | PDFKit.PDFGradient,
+  alpha = 1,
+) {
+  const steps = 80;
+  for (let s = 0; s <= steps; s++) {
+    const x = (s / steps) * FACE_W;
+    const y = base + amp * Math.sin((x / FACE_W) * Math.PI * 2 * cycles + phase);
+    if (s === 0) doc.moveTo(x, y);
+    else doc.lineTo(x, y);
+  }
+  const edge = side === 'below' ? FACE_H : 0;
+  doc.lineTo(FACE_W, edge).lineTo(0, edge).closePath();
+  fillPath(doc, paint, alpha);
+}
+
+/** Simple ligne ondulée (liseré) pleine largeur. */
+function strokeWave(
+  doc: Doc,
+  base: number,
+  amp: number,
+  cycles: number,
+  phase: number,
+  color: string,
+  alpha: number,
+  width: number,
+) {
+  const steps = 80;
+  for (let s = 0; s <= steps; s++) {
+    const x = (s / steps) * FACE_W;
+    const y = base + amp * Math.sin((x / FACE_W) * Math.PI * 2 * cycles + phase);
+    if (s === 0) doc.moveTo(x, y);
+    else doc.lineTo(x, y);
+  }
+  strokePath(doc, color, alpha, width);
+}
+
 /** Motif « guilloche » : éventail de vagues fines qui s'entrecroisent. */
-function drawGuilloche(doc: Doc, top: number) {
-  const H = 6;
-  const lines = 18;
+function drawGuilloche(
+  doc: Doc,
+  top: number,
+  height: number,
+  colors: [string, string],
+  alphas: [number, number],
+  lines = 18,
+) {
   const steps = 140;
   doc.save();
   doc.lineJoin('round').lineWidth(0.11);
   for (let i = 0; i < lines; i++) {
-    const amp = 0.5 + i * 0.12;
+    const amp = 0.5 + (i * height) / lines / 6 * 0.72;
     const phase = i * 0.27;
     const even = i % 2 === 0;
     for (let s = 0; s <= steps; s++) {
       const x = (s / steps) * FACE_W;
-      const y = top + H / 2 + amp * Math.sin((x / FACE_W) * Math.PI * 2 * 3.4 + phase);
+      const y = top + height / 2 + amp * Math.sin((x / FACE_W) * Math.PI * 2 * 3.4 + phase);
       if (s === 0) doc.moveTo(x, y);
       else doc.lineTo(x, y);
     }
-    doc.strokeColor(even ? '#E3C677' : '#8FC3E3', even ? 0.36 : 0.24).stroke();
+    doc.strokeColor(even ? colors[0] : colors[1], even ? alphas[0] : alphas[1]).stroke();
   }
   doc.restore();
 }
 
-/** Reflet diagonal et grain de métal brossé. */
-function drawMetalSheen(doc: Doc) {
-  const g = cssLinear(doc, 0, 0, FACE_W, FACE_H, 112)
-    .stop(0, '#ffffff', 0)
-    .stop(0.28, '#ffffff', 0)
-    .stop(0.44, '#ffffff', 0.11)
-    .stop(0.54, '#ffffff', 0.03)
-    .stop(0.66, '#ffffff', 0)
-    .stop(1, '#ffffff', 0);
-  doc.rect(0, 0, FACE_W, FACE_H).fill(g);
-
-  doc.save();
-  doc.fillColor('#ffffff', 0.028);
-  for (let x = 0; x < FACE_W; x += 0.4) {
-    doc.rect(x, 0, 0.15, FACE_H);
-  }
-  doc.fill();
-  doc.restore();
-}
-
-function drawFaceBackground(doc: Doc) {
-  const base = cssLinear(doc, 0, 0, FACE_W, FACE_H, 145)
-    .stop(0, '#0d4a70')
-    .stop(0.48, t.primaryDark)
-    .stop(1, t.primaryDeep);
-  doc.rect(0, 0, FACE_W, FACE_H).fill(base);
-
-  const cx = FACE_W * 0.85;
-  const glow = doc
-    .radialGradient(cx, 0, 0, cx, 0, 42)
-    .stop(0, t.primary, 0.95)
-    .stop(1, t.primary, 0);
-  doc.rect(0, 0, FACE_W, FACE_H).fill(glow);
-
-  drawMetalSheen(doc);
-}
-
-/** Cadre or arrondi contenant `draw` (le contenu est rogné aux coins arrondis). */
+/** Logo rond cerclé d'or. */
 function drawCircleImage(doc: Doc, cx: number, cy: number, d: number, ring: number) {
-  doc.circle(cx, cy, d / 2 + ring).fillColor(t.accentGold, 1).fill();
+  doc.circle(cx, cy, d / 2 + ring);
+  fillPath(doc, goldGradient(doc, cx - d / 2 - ring, cy - d / 2 - ring, d + ring * 2, d + ring * 2));
   doc.save();
   doc.circle(cx, cy, d / 2).clip();
   doc.image(LOGO, cx - d / 2, cy - d / 2, { width: d, height: d });
   doc.restore();
 }
 
-const FINGERPRINT_PATHS = [
-  'M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4',
-  'M14 13.12c0 2.38 0 6.38-1 8.88',
-  'M17.29 21.02c.12-.6.43-2.3.5-3.02',
-  'M2 12a10 10 0 0 1 18-6',
-  'M2 16h.01',
-  'M21.8 16c.2-2 .131-5.354 0-6',
-  'M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2',
-  'M8.65 22c.21-.66.45-1.32.57-2',
-  'M9 6.8a6 6 0 0 1 9 5.2v2',
-];
-
-function drawFingerprintChip(doc: Doc, x: number, y: number, size: number) {
-  const r = size / 2;
-  doc.circle(x + r, y + r, r);
-  fillPath(doc, '#ffffff', 0.07);
-  doc.circle(x + r, y + r, r - 0.125);
-  strokePath(doc, '#E3C677', 0.65, 0.25);
-
-  const inner = size - 2 * 1.55;
-  doc.save();
-  doc.translate(x + 1.55, y + 1.55).scale(inner / 24);
-  doc.lineWidth(1.3).lineCap('round').lineJoin('round').strokeColor(t.accentGold, 1);
-  for (const d of FINGERPRINT_PATHS) doc.path(d).stroke();
-  doc.restore();
-}
-
-function drawPin(doc: Doc, x: number, y: number, size: number) {
+function drawPin(doc: Doc, x: number, y: number, size: number, color = GOLD_SOFT) {
   doc.save();
   doc.translate(x, y).scale(size / 24);
   doc
     .path('M12 1.8c-4.1 0-7.4 3.2-7.4 7.2 0 5.4 7.4 13.2 7.4 13.2s7.4-7.8 7.4-13.2c0-4-3.3-7.2-7.4-7.2z')
     .lineWidth(1.1)
-    .strokeColor('#E3C677', 1)
+    .strokeColor(color, 1)
     .stroke();
-  doc.circle(12, 8.2, 2.5).fillColor('#E3C677', 1).fill();
+  doc.circle(12, 8.2, 2.5).fillColor(color, 1).fill();
   doc
     .path('M7.6 14.2c.9-2 2.6-3 4.4-3s3.5 1 4.4 3c-1.2 1.6-2.7 2.8-4.4 4.5-1.7-1.7-3.2-2.9-4.4-4.5z')
-    .fillColor('#E3C677', 0.85)
+    .fillColor(color, 0.85)
     .fill();
   doc.restore();
 }
 
-/** Drapeau des États-Unis (13 bandes, canton bleu et étoiles stylisées), dessiné en vectoriel. */
-function drawUsFlag(doc: Doc, x: number, y: number, w: number, h: number) {
-  const stripe = h / 13;
-  doc.save();
-  rr(doc, x, y, w, h, 0.3).clip();
-  doc.rect(x, y, w, h).fillColor('#FFFFFF', 1).fill();
-  for (let i = 0; i < 13; i += 2) {
-    doc.rect(x, y + i * stripe, w, stripe + 0.01).fillColor('#B22234', 1).fill();
-  }
-  const cw = w * 0.4;
-  const ch = stripe * 7;
-  doc.rect(x, y, cw, ch).fillColor('#3C3B6E', 1).fill();
-
-  // Étoiles : 4 rangées en quinconce (4 puis 3 points), assez fines pour rester lisibles à l'impression
-  const rows = 4;
-  for (let r = 0; r < rows; r++) {
-    const count = r % 2 === 0 ? 4 : 3;
-    const offset = r % 2 === 0 ? 0 : 0.5;
-    for (let c = 0; c < count; c++) {
-      const sx = x + cw * ((c + 0.5 + offset) / 4);
-      const sy = y + ch * ((r + 0.5) / rows);
-      doc.circle(sx, sy, 0.1).fillColor('#FFFFFF', 1).fill();
-    }
-  }
-  doc.restore();
-
-  // Fin liseré clair pour détacher le drapeau du fond bleu de la carte
-  rr(doc, x, y, w, h, 0.3);
-  strokePath(doc, '#ffffff', 0.5, 0.1);
-}
-
-/** Drapeau de la République de Guinée : trois bandes verticales rouge, jaune, vert. */
-function drawGuineaFlag(doc: Doc, x: number, y: number, w: number, h: number) {
-  const band = w / 3;
-  doc.save();
-  rr(doc, x, y, w, h, 0.3).clip();
-  doc.rect(x, y, band + 0.01, h).fillColor('#CE1126', 1).fill();
-  doc.rect(x + band, y, band + 0.01, h).fillColor('#FCD116', 1).fill();
-  doc.rect(x + band * 2, y, band, h).fillColor('#009460', 1).fill();
-  doc.restore();
-
-  rr(doc, x, y, w, h, 0.3);
-  strokePath(doc, '#ffffff', 0.5, 0.1);
-}
-
-/** Drapeaux des USA et de la Guinée, alignés à droite au-dessus de la pastille de statut. */
-function drawHeaderFlags(doc: Doc) {
+/** Fente de cordon (lanyard) : rectangle arrondi « percé » + liseré. */
+function drawLanyardSlot(doc: Doc, y: number, ring: string, ringAlpha: number) {
+  const w = 11;
   const h = 2.2;
-  const y = 1.4;
-  const gap = 1.2;
-  const guineaW = h * 1.5;
-  const usW = h * 1.9;
-  const right = FACE_W - 4;
-  drawGuineaFlag(doc, right - guineaW, y, guineaW, h);
-  drawUsFlag(doc, right - guineaW - gap - usW, y, usW, h);
+  const x = CX - w / 2;
+  rr(doc, x - 0.5, y - 0.5, w + 1, h + 1, (h + 1) / 2);
+  strokePath(doc, ring, ringAlpha, 0.2);
+  rr(doc, x, y, w, h, h / 2);
+  fillPath(doc, PAGE_BG);
+  // léger bord intérieur pour donner de la profondeur
+  rr(doc, x + 0.1, y + 0.1, w - 0.2, h - 0.2, h / 2);
+  strokePath(doc, '#000000', 0.18, 0.15);
 }
 
-function drawStatusPill(doc: Doc, data: CardData): number {
-  const status = data.status;
-  const label = statusLabel(data);
-  const style: TextStyle = { font: BOLD, size: 6.2, color: '#ffffff', spacing: 0.6 };
-  const textW = widthOf(doc, label, style);
-  const dot = 1.5;
-  const lineH = px(6.2) * 1.15;
-  const w = 2 + dot + 1.2 + textW + 2.6 + 0.5;
-  const h = lineH + 1.8 + 0.5;
-  const x = FACE_W - 4 - w;
-  const y = 4.6;
+/**
+ * Cadre photo. `shape` : rectangle arrondi (portrait) ou rond. Le contenu est
+ * rogné ; sans photo (ou photo illisible), un pictogramme est dessiné.
+ */
+function drawPhoto(
+  doc: Doc,
+  photo: Buffer | null,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  shape: 'rect' | 'circle',
+  frame: number,
+) {
+  const path = (ix: number, iy: number, iw: number, ih: number, r: number) =>
+    shape === 'circle' ? doc.circle(ix + iw / 2, iy + ih / 2, iw / 2) : rr(doc, ix, iy, iw, ih, r);
 
-  rr(doc, x, y, w, h, 10);
-  fillPath(doc, '#ffffff', 0.12);
-  rr(doc, x + 0.125, y + 0.125, w - 0.25, h - 0.25, 10);
-  strokePath(doc, '#ffffff', 0.5, 0.25);
-
-  const dotX = x + 0.25 + 2 + dot / 2;
-  const dotY = y + h / 2;
-  const color = statusColor(status);
-  doc.circle(dotX, dotY, dot / 2 + 0.55);
-  fillPath(doc, color, 0.3);
-  doc.circle(dotX, dotY, dot / 2);
-  fillPath(doc, color, 1);
-
-  drawText(doc, label, x + 0.25 + 2 + dot + 1.2, y + 0.25 + 0.9, style);
-  return x;
-}
-
-function drawPhotoFrame(doc: Doc, photo: Buffer | null) {
-  const x = 4;
-  const y = 15.2;
-  const w = 20;
-  const h = 24.5;
-  softShadow(doc, x, y, w, h, 2.2, 0.8, 1.6, 0.3);
-  rr(doc, x, y, w, h, 2.2);
+  softShadow(doc, x, y, w, h, shape === 'circle' ? w / 2 : 2.2, 0.8, 1.6, 0.3);
+  path(x, y, w, h, 2.2);
   fillPath(doc, goldGradient(doc, x, y, w, h));
 
-  const ix = x + 0.5;
-  const iy = y + 0.5;
-  const iw = w - 1;
-  const ih = h - 1;
-  rr(doc, ix, iy, iw, ih, 1.8).fill(
+  const ix = x + frame;
+  const iy = y + frame;
+  const iw = w - frame * 2;
+  const ih = h - frame * 2;
+  path(ix, iy, iw, ih, 1.8).fill(
     cssLinear(doc, ix, iy, iw, ih, 160).stop(0, '#14618d').stop(0.55, '#0a3a56').stop(1, '#072c42'),
   );
 
@@ -522,7 +462,7 @@ function drawPhotoFrame(doc: Doc, photo: Buffer | null) {
   if (photo) {
     doc.save();
     try {
-      rr(doc, ix, iy, iw, ih, 1.8).clip();
+      path(ix, iy, iw, ih, 1.8).clip();
       doc.image(photo, ix, iy, { cover: [iw, ih], align: 'center', valign: 'center' });
       drawn = true;
     } catch {
@@ -531,181 +471,237 @@ function drawPhotoFrame(doc: Doc, photo: Buffer | null) {
       doc.restore();
     }
   }
-  if (!drawn) drawPin(doc, ix + (iw - 13) / 2, iy + (ih - 13) / 2, 13);
+  if (!drawn) drawPin(doc, ix + (iw - 12) / 2, iy + (ih - 12) / 2, 12);
 }
 
-function drawQr(doc: Doc, qr: Buffer, x: number, y: number, size: number, pad: number, innerPad: number, rOuter: number, rInner: number) {
-  softShadow(doc, x, y, size, size, rOuter, 0.6, 1.2, 0.3);
-  rr(doc, x, y, size, size, rOuter);
+/** QR code dans un cadre or. */
+function drawQr(doc: Doc, qr: Buffer, x: number, y: number, size: number) {
+  const pad = 0.4;
+  const innerPad = 0.9;
+  softShadow(doc, x, y, size, size, 1.8, 0.6, 1.2, 0.3);
+  rr(doc, x, y, size, size, 1.8);
   fillPath(doc, goldGradient(doc, x, y, size, size));
   const ix = x + pad;
   const iy = y + pad;
   const is = size - pad * 2;
-  rr(doc, ix, iy, is, is, rInner).fillColor('#ffffff', 1).fill();
+  rr(doc, ix, iy, is, is, 1.4).fillColor('#ffffff', 1).fill();
   doc.image(qr, ix + innerPad, iy + innerPad, { width: is - innerPad * 2, height: is - innerPad * 2 });
 }
 
-function drawFooterBand(doc: Doc, height: number) {
-  const y = FACE_H - height;
-  doc.rect(0, y, FACE_W, height);
-  fillPath(doc, cssLinear(doc, 0, y, FACE_W, height, 180).stop(0, '#06263A', 0.55).stop(1, '#06263A', 0.9));
-  doc.rect(0, y, FACE_W, 0.25);
-  fillPath(doc, '#E3C677', 0.6);
+interface Palette {
+  label: string; // libellés des champs
+  labelAlpha: number;
+  value: string; // valeurs
+  accent: string; // titres dorés / identifiant
+  soft: string; // textes secondaires
+  softAlpha: number;
 }
 
-// ---------------------------------------------------------------------------
-// Recto
-// ---------------------------------------------------------------------------
+/** Pastille de statut centrée sur `cx` (fond blanc sur gabarit clair, bleu nuit sur gabarit sombre). */
+function drawStatusPill(doc: Doc, data: CardData, cx: number, y: number, onLight: boolean) {
+  const label = statusLabel(data);
+  const style: TextStyle = { font: BOLD, size: 5.4, color: onLight ? t.primaryDeep : '#ffffff', spacing: 0.6 };
+  const textW = widthOf(doc, label, style);
+  const dot = 1.3;
+  const h = 3.2;
+  const w = 1.9 + dot + 1.1 + textW + 2.4;
+  const x = cx - w / 2;
 
-function drawRecto(doc: Doc, data: CardData) {
-  drawFaceBackground(doc);
-  drawGuilloche(doc, FACE_H - 11.5 - 6);
+  rr(doc, x, y, w, h, 10);
+  fillPath(doc, onLight ? '#ffffff' : t.primaryDeep, onLight ? 1 : 0.95);
+  rr(doc, x + 0.1, y + 0.1, w - 0.2, h - 0.2, 10);
+  if (onLight) strokePath(doc, t.primary, 0.4, 0.2);
+  else strokePath(doc, GOLD_SOFT, 0.9, 0.22);
 
-  // En-tête : logo + nom de l'association
-  drawCircleImage(doc, 4 + 9.5 / 2, 3.2 + 9.5 / 2, 9.5, 0.3);
-  // Nom de l'association : texte rempli avec le dégradé d'or
-  const brand = safe(t.associationName);
-  const brandStyle: TextStyle = { font: BOLD, size: 9, color: t.accentGoldLight, spacing: 1.1 };
-  const brandW = widthOf(doc, brand, brandStyle);
-  const brandH = px(9) * 1.15;
-  setStyle(doc, brandStyle);
-  doc
-    .fillColor(goldGradient(doc, 15.9, 5.57, brandW, brandH) as unknown as string, 1)
-    .text(brand, 15.9, 5.57, { lineBreak: false, characterSpacing: spacingMm(brandStyle) });
-  doc.fillOpacity(1);
-  drawText(doc, textsOf(data).cardTitle, 15.9, 8.81, { size: 5, color: '#ffffff', alpha: 0.72, spacing: 1.5 });
+  const dotX = x + 1.9 + dot / 2;
+  const color = statusColor(data.status, onLight);
+  doc.circle(dotX, y + h / 2, dot / 2 + 0.45);
+  fillPath(doc, color, 0.28);
+  doc.circle(dotX, y + h / 2, dot / 2);
+  fillPath(doc, color, 1);
 
-  // La puce d'empreinte se décale vers la gauche si la pastille de statut est large
-  drawHeaderFlags(doc);
-  const pillX = drawStatusPill(doc, data);
-  drawFingerprintChip(doc, Math.min(FACE_W - 26 - 7.2, pillX - 1.5 - 7.2), 4.2, 7.2);
-  drawPhotoFrame(doc, data.photo);
+  drawText(doc, label, x + 1.9 + dot + 1.1, y + (h - lineHeight(style)) / 2 + 0.05, style);
+}
 
-  // Informations du membre
-  const infoX = 28.5;
-  const infoW = FACE_W - infoX - 4;
-  let y = 15;
-  drawText(doc, textsOf(data).memberBadge, infoX, y, { font: BOLD, size: 5.4, color: t.accentGold, spacing: 1.4 });
-  y += px(5.4) * 1.15 + 0.7;
-
-  const fullName = safe(`${data.firstName} ${data.lastName.toUpperCase()}`);
-  const nameStyle = shrinkToFit(doc, fullName, infoW, { font: BOLD, size: 11.5, color: '#ffffff', spacing: 0.2 }, 7);
-  drawText(doc, fullName, infoX, y, nameStyle);
-  y += px(11.5) * 1.12 + 0.8;
-
-  rr(doc, infoX, y, 14, 0.3, 0.15);
-  fillPath(doc, goldGradient(doc, infoX, y, 14, 0.3));
-  y += 0.3 + 1.6;
-
-  // Téléphone, puis origine et résidence
+/** Les quatre lignes d'informations (téléphone, origine, localité, résidence). Renvoie le bas. */
+function drawInfoRows(doc: Doc, data: CardData, x: number, y: number, w: number, pal: Palette, rowGap = 1.5): number {
   const phone = parsePhone(data.phone);
+  const tx = textsOf(data);
   const rows: Array<{ label: string; value: string }> = [
-    { label: textsOf(data).phone, value: phone.text ? safe(phone.text) : '—' },
-    { label: textsOf(data).originCity, value: safe(data.originDistrict) || '—' },
-    { label: textsOf(data).originLocality, value: safe(data.originLocality) || '—' },
-    { label: textsOf(data).residenceCity, value: safe(`${data.city}, ${data.state}`) },
+    { label: tx.phone, value: phone.text ? safe(phone.text) : '—' },
+    { label: tx.originCity, value: safe(data.originDistrict) || '—' },
+    { label: tx.originLocality, value: safe(data.originLocality) || '—' },
+    { label: tx.residenceCity, value: safe(`${data.city}, ${data.state}`) },
   ];
-  const labelStyle: TextStyle = { size: 4.9, color: '#ffffff', alpha: 0.62, spacing: 0.5 };
-  const valueStyle: TextStyle = { font: BOLD, size: 6.8, color: '#ffffff' };
+  const labelStyle: TextStyle = { size: 4.5, color: pal.label, alpha: pal.labelAlpha, spacing: 0.45 };
+  const valueStyle: TextStyle = { font: BOLD, size: 6.3, color: pal.value };
   const labelW = Math.max(...rows.map((r) => widthOf(doc, r.label, labelStyle))) + 1.8;
-  const valueX = infoX + labelW;
-  const rowH = px(6.8) * 1.15;
+  const valueX = x + labelW;
+  const rowH = lineHeight(valueStyle);
   for (const row of rows) {
-    drawText(doc, row.label, infoX, y + 0.3, labelStyle);
-    drawText(doc, fitText(doc, row.value, infoX + infoW - valueX, valueStyle), valueX, y, valueStyle);
-    y += rowH + 0.95;
+    drawText(doc, row.label, x, y + (rowH - lineHeight(labelStyle)) / 2 + 0.1, labelStyle);
+    drawText(doc, fitText(doc, row.value, x + w - valueX, valueStyle), valueX, y, valueStyle);
+    y += rowH + rowGap;
+  }
+  return y - rowGap;
+}
+
+/** Prénom + NOM sur une ligne, réduits au besoin. Renvoie la hauteur utilisée. */
+function drawFullName(doc: Doc, data: CardData, cx: number, y: number, w: number, color: string, size = 10.5): number {
+  const fullName = safe(`${data.firstName} ${data.lastName.toUpperCase()}`);
+  const style = shrinkToFit(doc, fullName, w, { font: BOLD, size, color, spacing: 0.2 }, 6.5);
+  drawCentered(doc, fullName, cx, y, style);
+  return lineHeight({ ...style, size });
+}
+
+/**
+ * Bloc d'identité du pied de carte : à gauche N° identifiant, expiration et
+ * texte de vérification ; à droite le QR code (ex-verso). Identifiant et
+ * expiration sont côte à côte quand la largeur le permet, sinon empilés.
+ */
+function drawIdentityFooter(doc: Doc, data: CardData, left: number, bottom: number, qrSize: number, pal: Palette) {
+  const tx = textsOf(data);
+  const qrX = FACE_W - 3.4 - qrSize;
+  const qrY = bottom - qrSize;
+  drawQr(doc, data.qrPng, qrX, qrY, qrSize);
+
+  const kStyle: TextStyle = { size: 4.3, color: pal.soft, alpha: pal.softAlpha, spacing: 0.9 };
+  const idStyle: TextStyle = { font: BOLD, size: 7.2, color: pal.accent, spacing: 0.7 };
+  const expStyle: TextStyle = { font: BOLD, size: 7.2, color: pal.value, spacing: 0.7 };
+  const colW = qrX - 2.2 - left;
+  const kH = lineHeight(kStyle) + 0.25;
+  const vH = lineHeight(idStyle);
+  const code = safe(data.memberCode);
+  const exp = formatMonthYear(data.expiresAt);
+
+  const idW = Math.max(widthOf(doc, tx.memberId, kStyle), widthOf(doc, code, idStyle));
+  const expW = Math.max(widthOf(doc, tx.expiresEnd, kStyle), widthOf(doc, exp, expStyle));
+  const sideBySide = idW + 3 + expW <= colW;
+
+  // Hauteur du texte de vérification (2 à 3 lignes)
+  const scan: TextStyle = { size: 4.1, color: pal.value, alpha: 0.85 };
+  const scanBold: TextStyle = { font: BOLD, size: 4.1, color: pal.accent };
+  setStyle(doc, scan);
+  const fullScan = `${tx.scanPrefix}${tx.scanBold}${tx.scanSuffix}`;
+  const scanH = doc.heightOfString(fullScan, { width: colW, lineGap: 0.2 });
+  const blockH = (sideBySide ? kH + vH : kH * 2 + vH * 2 + 0.8) + 1.1 + scanH;
+
+  let y = Math.max(qrY - 0.2, bottom - blockH);
+  drawText(doc, tx.memberId, left, y, kStyle);
+  drawText(doc, code, left, y + kH, idStyle);
+  if (sideBySide) {
+    const ex = left + idW + 3;
+    drawText(doc, tx.expiresEnd, ex, y, kStyle);
+    drawText(doc, exp, ex, y + kH, expStyle);
+    y += kH + vH + 1.3;
+  } else {
+    y += kH + vH + 0.8;
+    drawText(doc, tx.expiresEnd, left, y, kStyle);
+    drawText(doc, exp, left, y + kH, expStyle);
+    y += kH + vH + 1.1;
   }
 
-  // Pied de carte : identifiant + expiration
-  drawFooterBand(doc, 11.5);
-  const kStyle: TextStyle = { size: 4.8, color: '#ffffff', alpha: 0.58, spacing: 1 };
-  const idStyle: TextStyle = { font: BOLD, size: 8.2, color: t.accentGoldLight, spacing: 1 };
-  const expStyle: TextStyle = { font: BOLD, size: 8.2, color: '#ffffff', spacing: 1 };
-  const blockH = px(4.8) * 1.15 + 0.4 + px(8.2) * 1.15;
-  const blockY = FACE_H - 11.5 + 0.25 + (11.25 - blockH) / 2;
-  const kH = px(4.8) * 1.15 + 0.4;
-  const idLabel = textsOf(data).memberId;
-  const code = safe(data.memberCode);
-  drawText(doc, idLabel, 4, blockY, kStyle);
-  drawText(doc, code, 4, blockY + kH, idStyle);
-  const idW = Math.max(widthOf(doc, idLabel, kStyle), widthOf(doc, code, idStyle));
-  const expX = 4 + idW + 9;
-  drawText(doc, textsOf(data).expiresEnd, expX, blockY, kStyle);
-  drawText(doc, formatMonthYear(data.expiresAt), expX, blockY + kH, expStyle);
-
-  drawQr(doc, data.qrPng, FACE_W - 3.6 - 14.5, FACE_H - 3 - 14.5, 14.5, 0.4, 0.9, 1.8, 1.4);
+  // Texte de vérification (ex-verso), mots-clés en gras
+  setStyle(doc, scan);
+  doc.fillColor(scan.color, scan.alpha ?? 1).text(tx.scanPrefix, left, y, { width: colW, continued: true, lineGap: 0.2 });
+  setStyle(doc, scanBold);
+  doc.fillColor(scanBold.color, 1).text(tx.scanBold, { continued: true, lineGap: 0.2 });
+  setStyle(doc, scan);
+  doc.fillColor(scan.color, scan.alpha ?? 1).text(tx.scanSuffix, { continued: false, lineGap: 0.2 });
+  doc.fillOpacity(1);
 }
 
 // ---------------------------------------------------------------------------
-// Verso
+// Recto unique : fond clair, grande forme océan et or dans l'angle (inspirée du
+// badge PASTEF), photo cadrée, QR code et texte de vérification en pied
 // ---------------------------------------------------------------------------
 
-function drawVerso(doc: Doc, data: CardData) {
-  drawFaceBackground(doc);
-  drawGuilloche(doc, FACE_H - 9 - 6);
+function drawMemberCard(doc: Doc, data: CardData) {
+  const tx = textsOf(data);
 
-  // Cadre intérieur fin
-  rr(doc, 1.6 + 0.1, 1.6 + 0.1, FACE_W - 3.2 - 0.2, FACE_H - 3.2 - 0.2, 2);
-  strokePath(doc, '#E3C677', 0.45, 0.2);
+  // Fond clair + voile bleuté vers le bas
+  doc.rect(0, 0, FACE_W, FACE_H).fill(cssLinear(doc, 0, 0, FACE_W, FACE_H, 180).stop(0, '#FFFFFF').stop(1, '#E6EEF2'));
+  // Filigrane : vagues très fines bleues et or derrière la photo
+  drawGuilloche(doc, 15, 30, [t.primary, GOLD_SOFT], [0.1, 0.24], 22);
 
-  const usable = FACE_H - 9;
+  // Grande forme ondulée dans l'angle haut-gauche (clin d'œil à PASTEF)
+  doc.moveTo(0, 0).lineTo(26, 0).bezierCurveTo(16, 8, 6, 20, 0, 41).closePath();
+  fillPath(doc, OCEAN_LIGHT, 0.32);
+  doc.moveTo(0, 0).lineTo(21.5, 0).bezierCurveTo(12.5, 7, 4, 17, 0, 32).closePath();
+  fillPath(doc, cssLinear(doc, 0, 0, 22, 32, 150).stop(0, t.primaryDeep).stop(1, t.primary));
+  doc.moveTo(21.5, 0).bezierCurveTo(12.5, 7, 4, 17, 0, 32);
+  strokePath(doc, t.accentGold, 1, 0.5);
 
-  // Colonne gauche : grand logo + légende
-  const captionStyle: TextStyle = { font: BOLD, size: 5.4, color: t.accentGoldLight, spacing: 1.6 };
-  const captionH = px(5.4) * 1.15;
-  const leftH = 24 + 3 + captionH;
-  const leftTop = (usable - leftH) / 2;
-  const leftCx = 5 + 31 / 2;
-  drawCircleImage(doc, leftCx, leftTop + 12, 24, 0.4);
-  const cap = textsOf(data).cardTitle;
-  drawText(doc, cap, leftCx - widthOf(doc, cap, captionStyle) / 2, leftTop + 24 + 3, captionStyle);
+  // Vagues du pied de carte
+  fillWave(doc, 67.8, 1.3, 1.6, 0.6, 'below', OCEAN_LIGHT, 0.55);
+  fillWave(doc, 69.6, 1.3, 1.6, 2.2, 'below', t.primary);
+  fillWave(doc, 71.6, 1.1, 1.6, 3.6, 'below', cssLinear(doc, 0, 70, FACE_W, 15, 180).stop(0, t.primaryDark).stop(1, t.primaryDeep));
+  strokeWave(doc, 69.6, 1.3, 1.6, 2.2, GOLD_SOFT, 0.95, 0.3);
 
-  // Séparateur vertical dégradé
-  const divH = FACE_H - 7 - 14;
-  doc
-    .rect(40, 7, 0.25, divH)
-    .fill(
-      doc
-        .linearGradient(0, 7, 0, 7 + divH)
-        .stop(0, '#E3C677', 0)
-        .stop(0.5, '#E3C677', 0.8)
-        .stop(1, '#E3C677', 0),
-    );
+  // Fente du cordon
+  drawLanyardSlot(doc, 2.6, t.primary, 0.35);
 
-  // Colonne droite : QR code + texte de vérification
-  const rightX = 43;
-  const rightW = FACE_W - 5 - rightX;
-  const rightCx = rightX + rightW / 2;
-  const lineH = px(5.4) * 1.45;
-  const rightH = 27 + 2.4 + lineH * 2;
-  const rightTop = (usable - rightH) / 2;
-  drawQr(doc, data.qrPng, rightCx - 13.5, rightTop, 27, 0.5, 1.6, 2.4, 1.9);
+  // En-tête : logo sur la forme bleue, pastille de marque, titre
+  drawCircleImage(doc, 7.4, 11.2, 7.6, 0.35);
+  const brand = safe(t.associationName);
+  const brandStyle: TextStyle = { font: BOLD, size: 5.6, color: t.accentGoldLight, spacing: 1 };
+  const pillW = widthOf(doc, brand, brandStyle) + 5;
+  const pillH = 3.4;
+  const hx = 15.6 + (FACE_W - 15.6 - 3.4 - pillW) / 2;
+  rr(doc, hx, 7.4, pillW, pillH, 0.9);
+  fillPath(doc, cssLinear(doc, hx, 7.4, pillW, pillH, 90).stop(0, t.primaryDark).stop(1, t.primary));
+  drawCentered(doc, brand, hx + pillW / 2, 7.4 + (pillH - lineHeight(brandStyle)) / 2 + 0.1, brandStyle);
+  const title = shrinkToFit(doc, tx.cardTitle, FACE_W - 15.6 - 3.4, { font: BOLD, size: 8.6, color: t.primaryDeep, spacing: 0.3 }, 5);
+  drawCentered(doc, tx.cardTitle, hx + pillW / 2, 11.7, title);
+  drawCentered(doc, `${tx.since} ${t.foundedYear}`, hx + pillW / 2, 14.55, {
+    font: BOLD,
+    size: 4.4,
+    color: t.accentGoldDark,
+    spacing: 1.6,
+  });
 
-  const regular: TextStyle = { size: 5.4, color: '#ffffff', alpha: 0.88, spacing: 0.2 };
-  const bold: TextStyle = { font: BOLD, size: 5.4, color: t.accentGoldLight, spacing: 0.2 };
-  const p1 = textsOf(data).scanPrefix;
-  const p2 = textsOf(data).scanBold;
-  const p3 = textsOf(data).scanSuffix;
-  const w1 = widthOf(doc, p1, regular);
-  const w2 = widthOf(doc, p2, bold);
-  const textY = rightTop + 27 + 2.4;
-  const startX = rightCx - (w1 + w2) / 2;
-  drawText(doc, p1, startX, textY, regular);
-  drawText(doc, p2, startX + w1, textY, bold);
-  drawText(doc, p3, rightCx - widthOf(doc, p3, regular) / 2, textY + lineH, regular);
+  // Photo (cadre or + repères d'angle)
+  const pw = 19.2;
+  const ph = 23.6;
+  const px0 = CX - pw / 2;
+  const py0 = 18.2;
+  drawPhoto(doc, data.photo, px0, py0, pw, ph, 'rect', 0.5);
+  const b = 2.8;
+  const off = 1.25;
+  doc.lineWidth(0.3).lineCap('round').strokeColor(t.accentGoldDark, 1);
+  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const cx = sx < 0 ? px0 - off : px0 + pw + off;
+    const cy = sy < 0 ? py0 - off : py0 + ph + off;
+    doc.moveTo(cx, cy - sy * b).lineTo(cx, cy).lineTo(cx - sx * b, cy).stroke();
+  }
 
-  // Bandeau bas : identifiant + expiration
-  drawFooterBand(doc, 9);
-  const codeStyle: TextStyle = { font: BOLD, size: 6.2, color: '#ffffff', spacing: 1 };
-  const expStyle: TextStyle = { font: BOLD, size: 6.2, color: t.accentGoldLight, spacing: 1 };
-  const code = `${safe(data.memberCode)} · `;
-  const exp = `${textsOf(data).expiresEnd.charAt(0)}${textsOf(data).expiresEnd.slice(1).toLowerCase()} ${formatMonthYear(data.expiresAt)}`;
-  const wCode = widthOf(doc, code, codeStyle);
-  const wExp = widthOf(doc, exp, expStyle);
-  const textTop = FACE_H - 9 + 0.25 + (8.75 - px(6.2) * 1.15) / 2;
-  const x0 = (FACE_W - wCode - wExp) / 2;
-  drawText(doc, code, x0, textTop, codeStyle);
-  drawText(doc, exp, x0 + wCode, textTop, expStyle);
+  // Statut, mention, nom
+  drawStatusPill(doc, data, CX, py0 + ph - 1.6, true);
+  let y = py0 + ph + 3.1;
+  y += drawCentered(doc, tx.memberBadge, CX, y, { font: BOLD, size: 4.8, color: t.accentGoldDark, spacing: 1.4 }) + 0.4;
+  y += drawFullName(doc, data, CX, y, FACE_W - 8, t.primaryDeep) + 0.6;
+  rr(doc, CX - 7, y, 14, 0.3, 0.15);
+  fillPath(doc, goldGradient(doc, CX - 7, y, 14, 0.3));
+  y += 1.8;
+
+  drawInfoRows(doc, data, 4.8, y, FACE_W - 9.6, {
+    label: t.primaryDark,
+    labelAlpha: 0.7,
+    value: t.primaryDeep,
+    accent: t.accentGold,
+    soft: '#fff',
+    softAlpha: 0.7,
+  });
+
+  // Pied de carte sur les vagues sombres
+  drawIdentityFooter(doc, data, 4.8, FACE_H - 3.4, 14, {
+    label: '#fff',
+    labelAlpha: 0.7,
+    value: '#ffffff',
+    accent: t.accentGoldLight,
+    soft: '#ffffff',
+    softAlpha: 0.7,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -726,8 +722,8 @@ function drawCard(doc: Doc, ox: number, oy: number, paint: () => void) {
 }
 
 /**
- * Génère le PDF de la carte : recto et verso empilés sur une seule page, avec
- * une marge autour (mêmes dimensions que l'ancien rendu Chromium).
+ * Génère le PDF de la carte : une seule face, en portrait, au centre d'une page
+ * avec une marge autour.
  */
 export function renderMemberCardPdf(data: CardData): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
@@ -746,10 +742,9 @@ export function renderMemberCardPdf(data: CardData): Promise<Buffer> {
       doc.scale(PT_PER_MM);
 
       // Fond de page
-      doc.rect(0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM).fillColor('#e9eef2', 1).fill();
+      doc.rect(0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM).fillColor(PAGE_BG, 1).fill();
 
-      drawCard(doc, PAGE_MARGIN_MM, PAGE_MARGIN_MM, () => drawRecto(doc, data));
-      drawCard(doc, PAGE_MARGIN_MM, PAGE_MARGIN_MM + CARD_HEIGHT_MM + CARD_GAP_MM, () => drawVerso(doc, data));
+      drawCard(doc, PAGE_MARGIN_MM, PAGE_MARGIN_MM, () => drawMemberCard(doc, data));
 
       doc.end();
     } catch (err) {

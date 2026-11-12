@@ -4,6 +4,7 @@
 // partout (carte de membre + e-mails).
 export const THEME = {
   associationName: 'LELOU SOLIDARITY',
+  foundedYear: 2021, // année de création de l'association (imprimée sur la carte)
   primary: '#0E5581', // bleu ocean (extrait de la charte fournie)
   primaryDark: '#093753',
   primaryDeep: '#06263A', // bleu nuit, fond le plus sombre de la carte
