@@ -28,6 +28,7 @@ import { normalizePhone } from '../common/phone';
 import { Locale } from '../common/i18n';
 import { ChangeEmailDto, ChangePasswordDto, UpdateProfileDto } from './dto/profile.dto';
 import { buildMembersCsv } from './members-csv';
+import { renderMembersPdf } from './members-pdf';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 Mo
 const ALLOWED_AVATAR_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -222,5 +223,28 @@ export class AdminProfileService {
       },
     });
     return buildMembersCsv(members, locale);
+  }
+
+  /** Liste complète des membres en PDF (A4 paysage, tri alphabétique). */
+  async exportMembersPdf(locale: Locale): Promise<Buffer> {
+    const members = await this.prisma.member.findMany({
+      select: {
+        memberCode: true,
+        firstName: true,
+        lastName: true,
+        birthDate: true,
+        originDistrict: true,
+        position: true,
+        positionOther: true,
+        city: true,
+        state: true,
+        phone: true,
+        email: true,
+        status: true,
+        cardStatus: true,
+        cardExpiresAt: true,
+      },
+    });
+    return renderMembersPdf(members, locale);
   }
 }

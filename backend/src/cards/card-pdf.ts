@@ -178,7 +178,7 @@ const LOOKALIKES: Record<string, string> = {
   Ɛ: 'E', ɛ: 'e', Ɔ: 'O', ɔ: 'o',
 };
 
-function safe(value: string | number): string {
+export function safe(value: string | number): string {
   const extra = '’‘“”–—…•€';
   let out = '';
   for (const ch of String(value)) {

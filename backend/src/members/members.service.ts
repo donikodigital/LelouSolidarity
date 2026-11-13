@@ -1,4 +1,5 @@
 //backend/src/members/members.service.ts
+// v2.0 — submit() : le membre choisit son poste dans le formulaire public.
 // v1.9 — update() : poste du membre (position / positionOther), « Autre » avec saisie libre.
 // v1.8 — demande : Etat et Pays (prefill + verrouillage) ; membre : ville de
 // naissance (birthCity) et pays (country) a l'inscription et a la modification.
@@ -150,6 +151,13 @@ export class MembersService {
       throw new BadRequestException('La photo doit être au format JPG ou PNG.');
     }
 
+    // Poste choisi dans le formulaire (par défaut : simple membre). « Autre » exige un intitulé.
+    const position = dto.position ?? DEFAULT_POSITION;
+    const positionOther = position === 'OTHER' ? (dto.positionOther ?? '').trim().replace(/\s+/g, ' ') : '';
+    if (position === 'OTHER' && !positionOther) {
+      throw new BadRequestException('Précisez le poste.');
+    }
+
     const accessCode = await this.prisma.accessCode.findUnique({
       where: { code: dto.code.toUpperCase().trim() },
       include: { formRequest: true },
@@ -229,6 +237,8 @@ export class MembersService {
             birthCity: dto.birthCity.trim(),
             originDistrict: dto.originDistrict.trim(),
             originLocality: dto.originLocality.trim(),
+            position,
+            positionOther,
             addressLine: dto.addressLine.trim(),
             city: identity.city,
             state: identity.state,

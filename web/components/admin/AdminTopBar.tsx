@@ -77,24 +77,24 @@ export function AdminTopBar() {
     <>
       {/* Mobile */}
       <header className="sticky top-0 z-30 lg:hidden">
-        <div className="flex items-center justify-between gap-3 border-b-2 border-[#D8B65C]/70 bg-gradient-to-r from-ocean-800 to-ocean-700 px-4 py-3 text-white shadow-md shadow-ocean-900/20">
+        <div className="flex items-center justify-between gap-3 border-b-2 border-[#D8B65C]/70 bg-gradient-to-r from-ocean-800 to-ocean-700 px-3 py-3 min-[360px]:px-4 text-white shadow-md shadow-ocean-900/20">
           <button
             type="button"
             onClick={() => setProfileOpen(true)}
             aria-label={t.admin.topbar.openProfile}
-            className="flex min-w-0 items-center gap-3 rounded-2xl text-left transition-transform active:scale-95"
+            className="flex min-w-0 items-center gap-2 rounded-2xl min-[360px]:gap-3 text-left transition-transform active:scale-95"
           >
-            <Logo size={42} className="flex-shrink-0 ring-2 ring-[#D8B65C]" />
+            <Logo size={38} className="flex-shrink-0 ring-2 ring-[#D8B65C]" />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-extrabold tracking-wide">
+              <span className="block break-words text-[13px] font-extrabold leading-tight tracking-normal min-[360px]:text-sm min-[360px]:tracking-wide">
                 {ASSOCIATION_NAME}
               </span>
-              <span className="block text-[11px] font-medium text-ocean-100/80">
+              <span className="mt-0.5 block text-[11px] font-medium leading-tight text-ocean-100/80">
                 {t.admin.adminSpace}
               </span>
             </span>
           </button>
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-1.5 min-[360px]:gap-2">
             <LanguageSwitcher align="right" />
             <BellButton count={unreadCount} onClick={openNotifications} tone="dark" />
           </div>

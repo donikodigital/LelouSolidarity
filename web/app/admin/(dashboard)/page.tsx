@@ -91,12 +91,12 @@ export default function AdminDashboardPage() {
               className="shadow-lg shadow-ocean-900/30"
             />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
+              <span className="block break-words text-[22px] font-extrabold leading-tight tracking-tight sm:text-3xl">
                 {firstName ? fmt(td.hello, { name: firstName }) : td.helloNoName}
               </span>
-              <span className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-[#F3E2A9]">
-                <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate">{fmt(t.admin.profile.role, { name: ASSOCIATION_NAME })}</span>
+              <span className="mt-1.5 flex items-start gap-1.5 text-xs font-semibold leading-snug text-[#F3E2A9]">
+                <ShieldCheck className="mt-px h-3.5 w-3.5 flex-shrink-0" />
+                <span className="min-w-0 break-words">{fmt(t.admin.profile.role, { name: ASSOCIATION_NAME })}</span>
               </span>
             </span>
             <ChevronRight className="h-5 w-5 flex-shrink-0 text-ocean-100 transition-transform group-hover:translate-x-1" />
@@ -107,7 +107,7 @@ export default function AdminDashboardPage() {
               href="/admin/profil"
               className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#D8B65C]/25 px-3 py-1.5 text-xs font-bold text-[#F3E2A9] ring-1 ring-[#F3E2A9]/40 transition hover:bg-[#D8B65C]/35 active:scale-95"
             >
-              <span className="truncate">{fmt(td.completeProfile, { percent })}</span>
+              <span className="min-w-0 text-left leading-tight">{fmt(td.completeProfile, { percent })}</span>
               <ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
             </Link>
           )}
@@ -116,12 +116,12 @@ export default function AdminDashboardPage() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Link
               href="/admin/membres"
-              className="group flex min-w-0 items-center gap-3 rounded-2xl bg-white/10 px-3.5 py-3 ring-1 ring-white/15 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/15 active:scale-95"
+              className="group flex min-w-0 items-center gap-2.5 rounded-2xl bg-white/10 px-3 py-3 min-[360px]:gap-3 min-[360px]:px-3.5 ring-1 ring-white/15 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/15 active:scale-95"
             >
               <Users className="h-5 w-5 flex-shrink-0 text-ocean-100" />
               <span className="min-w-0">
                 <span className="block text-xl font-extrabold leading-none">{counts.total}</span>
-                <span className="mt-1 block truncate text-[11px] font-medium text-ocean-100">
+                <span className="mt-1 block break-words text-[11px] font-medium leading-tight text-ocean-100">
                   {td.registeredMembers}
                 </span>
               </span>
@@ -129,7 +129,7 @@ export default function AdminDashboardPage() {
             <Link
               href="/admin/demandes"
               className={clsx(
-                'group flex min-w-0 items-center gap-3 rounded-2xl px-3.5 py-3 ring-1 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 active:scale-95',
+                'group flex min-w-0 items-center gap-2.5 rounded-2xl px-3 py-3 ring-1 min-[360px]:gap-3 min-[360px]:px-3.5 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 active:scale-95',
                 requestsToHandle > 0
                   ? 'bg-[#D8B65C]/25 ring-[#F3E2A9]/50 hover:bg-[#D8B65C]/35'
                   : 'bg-white/10 ring-white/15 hover:bg-white/15',
@@ -138,7 +138,7 @@ export default function AdminDashboardPage() {
               <Inbox className="h-5 w-5 flex-shrink-0 text-ocean-100" />
               <span className="min-w-0">
                 <span className="block text-xl font-extrabold leading-none">{requestsToHandle}</span>
-                <span className="mt-1 block truncate text-[11px] font-medium text-ocean-100">
+                <span className="mt-1 block break-words text-[11px] font-medium leading-tight text-ocean-100">
                   {td.formsToSend}
                 </span>
               </span>

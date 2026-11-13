@@ -1,9 +1,9 @@
 //web/components/admin/profile/DataCard.tsx
-// Export de la liste des membres en CSV (sauvegarde, comptabilité, courrier...).
+// Export de la liste des membres en CSV (sauvegarde, comptabilité) ou en PDF (impression, partage).
 'use client';
 
 import { useState } from 'react';
-import { Database, Download, ShieldAlert } from 'lucide-react';
+import { Database, Download, FileText, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useSession } from '@/components/admin/SessionProvider';
 import { Notice, Section, type Flash } from './Section';
@@ -16,21 +16,24 @@ export function DataCard({ delay }: { delay?: number }) {
   const { t } = useI18n();
   const td = t.admin.account.data;
 
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'csv' | 'pdf' | null>(null);
   const [flash, setFlash] = useState<Flash | null>(null);
 
-  async function exportMembers() {
-    setBusy(true);
+  async function exportMembers(format: 'csv' | 'pdf') {
+    setBusy(format);
     setFlash(null);
     try {
-      const blob = await apiAdminBlob('/admin/export/members', session.accessToken);
+      const blob = await apiAdminBlob(
+        format === 'pdf' ? '/admin/export/members.pdf' : '/admin/export/members',
+        session.accessToken,
+      );
       const day = new Date().toISOString().slice(0, 10);
-      downloadBlob(blob, `${td.fileName}-${day}.csv`);
+      downloadBlob(blob, `${td.fileName}-${day}.${format}`);
       setFlash({ kind: 'success', text: td.done });
     } catch (err) {
       setFlash({ kind: 'error', text: err instanceof ApiError ? err.message : td.failed });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -43,10 +46,27 @@ export function DataCard({ delay }: { delay?: number }) {
           {td.warning}
         </p>
         <Notice flash={flash} />
-        <Button onClick={exportMembers} loading={busy} className="w-full">
-          {!busy && <Download className="h-4 w-4" />}
-          {busy ? td.exporting : td.export}
-        </Button>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <Button
+            onClick={() => exportMembers('csv')}
+            loading={busy === 'csv'}
+            disabled={busy !== null}
+            className="w-full"
+          >
+            {busy !== 'csv' && <Download className="h-4 w-4" />}
+            {busy === 'csv' ? td.exporting : td.export}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => exportMembers('pdf')}
+            loading={busy === 'pdf'}
+            disabled={busy !== null}
+            className="w-full"
+          >
+            {busy !== 'pdf' && <FileText className="h-4 w-4" />}
+            {busy === 'pdf' ? td.exporting : td.exportPdf}
+          </Button>
+        </div>
       </div>
     </Section>
   );

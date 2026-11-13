@@ -230,6 +230,7 @@ export const admin = pair(
     positions: {
       MEMBER: 'Membre',
       PRESIDENT: 'Président',
+      VICE_PRESIDENT: 'Vice-président',
       TREASURER: 'Trésorier',
       SECRETARY_GENERAL: 'Secrétaire général',
       OTHER: 'Autre',
@@ -463,6 +464,7 @@ export const admin = pair(
     positions: {
       MEMBER: 'Member',
       PRESIDENT: 'President',
+      VICE_PRESIDENT: 'Vice President',
       TREASURER: 'Treasurer',
       SECRETARY_GENERAL: 'General Secretary',
       OTHER: 'Other',
@@ -698,6 +700,7 @@ export const admin = pair(
     positions: {
       MEMBER: 'Membre',
       PRESIDENT: 'Président',
+      VICE_PRESIDENT: 'Vice-président',
       TREASURER: 'Trésorier',
       SECRETARY_GENERAL: 'Secrétaire général',
       OTHER: 'Autre',

@@ -1,7 +1,7 @@
 //web/lib/positions.ts
 // Postes proposés dans l'association (même liste que backend/src/common/positions.ts).
 // « OTHER » = poste saisi librement (positionOther).
-export const POSITION_CODES = ['MEMBER', 'PRESIDENT', 'TREASURER', 'SECRETARY_GENERAL', 'OTHER'] as const;
+export const POSITION_CODES = ['MEMBER', 'PRESIDENT', 'VICE_PRESIDENT', 'TREASURER', 'SECRETARY_GENERAL', 'OTHER'] as const;
 export type PositionCode = (typeof POSITION_CODES)[number];
 export const MAX_POSITION_OTHER_LENGTH = 60;
 

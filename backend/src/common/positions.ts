@@ -1,19 +1,20 @@
 //backend/src/common/positions.ts
+// v1.1 — + « Vice-président » ; le formulaire public propose aussi le poste.
 // Postes proposés dans l'association. Un membre a un « code » (MEMBER, PRESIDENT...) ;
 // pour « OTHER », le texte libre est dans positionOther (ex. « Conseiller »).
 import { Locale } from './i18n';
 
-export const POSITION_CODES = ['MEMBER', 'PRESIDENT', 'TREASURER', 'SECRETARY_GENERAL', 'OTHER'] as const;
+export const POSITION_CODES = ['MEMBER', 'PRESIDENT', 'VICE_PRESIDENT', 'TREASURER', 'SECRETARY_GENERAL', 'OTHER'] as const;
 export type PositionCode = (typeof POSITION_CODES)[number];
 
 export const DEFAULT_POSITION: PositionCode = 'MEMBER';
 export const MAX_POSITION_OTHER_LENGTH = 60;
 
 const LABELS: Record<Locale, Record<Exclude<PositionCode, 'OTHER'>, string>> = {
-  fr: { MEMBER: 'Membre', PRESIDENT: 'Président', TREASURER: 'Trésorier', SECRETARY_GENERAL: 'Secrétaire général' },
-  en: { MEMBER: 'Member', PRESIDENT: 'President', TREASURER: 'Treasurer', SECRETARY_GENERAL: 'General Secretary' },
+  fr: { MEMBER: 'Membre', PRESIDENT: 'Président', VICE_PRESIDENT: 'Vice-président', TREASURER: 'Trésorier', SECRETARY_GENERAL: 'Secrétaire général' },
+  en: { MEMBER: 'Member', PRESIDENT: 'President', VICE_PRESIDENT: 'Vice President', TREASURER: 'Treasurer', SECRETARY_GENERAL: 'General Secretary' },
   // Pular : en attendant une version relue par un locuteur, les intitulés restent en français
-  ff: { MEMBER: 'Membre', PRESIDENT: 'Président', TREASURER: 'Trésorier', SECRETARY_GENERAL: 'Secrétaire général' },
+  ff: { MEMBER: 'Membre', PRESIDENT: 'Président', VICE_PRESIDENT: 'Vice-président', TREASURER: 'Trésorier', SECRETARY_GENERAL: 'Secrétaire général' },
 };
 
 export function isPositionCode(value: unknown): value is PositionCode {

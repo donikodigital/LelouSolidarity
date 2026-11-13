@@ -1,4 +1,6 @@
 //web/components/forms/MemberForm.tsx
+// v1.6 — sélecteur « Poste dans l'association » (Membre, Président, Vice-président, Trésorier,
+// Secrétaire général, Autre à saisir) : le poste choisi est inscrit sur la carte.
 // v1.5 — textes FR/EN (dictionnaire forms.member), pays par défaut selon la langue.
 // v1.4 — « Ville de naissance » à droite de l'année de naissance ; ville d'origine et
 // localité d'origine sur la même ligne ; section « Résidence » avec État et Pays
@@ -16,6 +18,7 @@ import {
   Ban,
   CheckCircle2,
   Compass,
+  BadgeCheck,
   Loader2,
   Lock,
   Mail,
@@ -25,6 +28,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { PhotoDropzone } from '@/components/ui/PhotoDropzone';
 import { Logo } from '@/components/layout/Logo';
@@ -34,6 +38,7 @@ import { useI18n } from '@/lib/i18n/I18nProvider';
 import { LOCALES } from '@/lib/i18n/config';
 import { getDictionary } from '@/lib/i18n';
 import { fmt } from '@/lib/i18n/pair';
+import { MAX_POSITION_OTHER_LENGTH, POSITION_CODES } from '@/lib/positions';
 
 interface FormState {
   code: string;
@@ -43,6 +48,8 @@ interface FormState {
   birthCity: string;
   originDistrict: string;
   originLocality: string;
+  position: string;
+  positionOther: string;
   addressLine: string;
   city: string;
   state: string;
@@ -63,6 +70,8 @@ const makeInitialState = (country: string): FormState => ({
   birthCity: '',
   originDistrict: '',
   originLocality: '',
+  position: 'MEMBER',
+  positionOther: '',
   addressLine: '',
   city: '',
   state: '',
@@ -306,6 +315,11 @@ export function MemberForm() {
       return;
     }
 
+    if (form.position === 'OTHER' && !form.positionOther.trim()) {
+      setSubmitError(tm.positionOtherRequired);
+      return;
+    }
+
     if (!photo) {
       setPhotoError(tm.photoRequired);
       return;
@@ -318,6 +332,9 @@ export function MemberForm() {
       const { birthYear, ...rest } = form;
       // Le code vient toujours du lien, jamais d'un champ modifiable
       const values: Record<string, string> = { ...rest, code };
+      // Texte libre uniquement pour « Autre »
+      if (form.position === 'OTHER') values.positionOther = form.positionOther.trim();
+      else delete values.positionOther;
       if (prefill) {
         // le serveur les impose aussi
         const { state, country, ...identity } = prefill;
@@ -598,6 +615,36 @@ export function MemberForm() {
               onChange={(e) => update('originLocality', e.target.value)}
             />
           </div>
+        </section>
+
+        {/* Poste dans l'association : repris sur la carte de membre */}
+        <section className="flex flex-col gap-4">
+          <SectionTitle icon={BadgeCheck}>{tm.association}</SectionTitle>
+          <Select
+            label={tm.position}
+            name="position"
+            value={form.position}
+            onChange={(e) => update('position', e.target.value)}
+          >
+            {POSITION_CODES.map((code) => (
+              <option key={code} value={code}>
+                {t.admin.positions[code]}
+              </option>
+            ))}
+          </Select>
+          {form.position === 'OTHER' && (
+            <Input
+              label={tm.positionOther}
+              name="positionOther"
+              placeholder={tm.positionOtherPlaceholder}
+              autoCapitalize="sentences"
+              required
+              maxLength={MAX_POSITION_OTHER_LENGTH}
+              value={form.positionOther}
+              onChange={(e) => update('positionOther', e.target.value)}
+            />
+          )}
+          <p className="text-xs text-ocean-500">{tm.positionHint}</p>
         </section>
 
         {/* Résidence */}

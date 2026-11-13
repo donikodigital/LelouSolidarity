@@ -8,6 +8,7 @@
 //   DELETE /api/admin/profile/avatar           retirer la photo
 //   POST   /api/admin/profile/sessions/revoke  se déconnecter de tous les appareils
 //   GET    /api/admin/export/members           liste des membres en CSV
+//   GET    /api/admin/export/members.pdf       liste des membres en PDF
 import {
   Body,
   Controller,
@@ -18,6 +19,7 @@ import {
   Patch,
   Post,
   Res,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -99,5 +101,17 @@ export class AdminProfileController {
     res.setHeader('Content-Disposition', `attachment; filename="membres-lelou-solidarity-${date}.csv"`);
     res.setHeader('Cache-Control', 'no-store');
     return csv;
+  }
+
+  @Get('export/members.pdf')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async exportMembersPdf(@Lang() lang: Locale, @Res({ passthrough: true }) res: Response) {
+    const pdf = await this.profile.exportMembersPdf(lang);
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Cache-Control', 'no-store');
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="membres-lelou-solidarity-${date}.pdf"`,
+    });
   }
 }

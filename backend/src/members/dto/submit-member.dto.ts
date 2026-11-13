@@ -1,5 +1,6 @@
 //backend/src/members/dto/submit-member.dto.ts
-import { IsDateString, IsEmail, IsString, Length, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsDateString, IsIn, IsOptional, IsString, Length, MaxLength, MinLength } from 'class-validator';
+import { MAX_POSITION_OTHER_LENGTH, POSITION_CODES } from '../../common/positions';
 
 export class SubmitMemberDto {
   @IsString()
@@ -35,6 +36,17 @@ export class SubmitMemberDto {
   @MinLength(1, { message: 'La localité d’origine est obligatoire' })
   @MaxLength(120, { message: 'La localité d’origine est trop longue (120 caractères maximum)' })
   originLocality: string;
+
+  /** Poste choisi par le membre (facultatif : « MEMBER » par défaut). L'administrateur peut le corriger. */
+  @IsOptional()
+  @IsIn(POSITION_CODES as unknown as string[], { message: 'Poste invalide' })
+  position?: string;
+
+  /** Intitulé saisi librement, obligatoire quand position = OTHER. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_POSITION_OTHER_LENGTH, { message: 'Le poste ne doit pas dépasser 60 caractères.' })
+  positionOther?: string;
 
   @IsString()
   @MinLength(1)
