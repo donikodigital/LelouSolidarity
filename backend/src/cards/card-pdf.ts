@@ -1,4 +1,6 @@
 //backend/src/cards/card-pdf.ts
+// v2.2 — consignes du client : lignes « Téléphone, Localité, Résidence, Poste » (la localité est
+// le lieu d'origine, ex. Lelouma) ; « DEPUIS » reprend l'année de THEME.foundedYear.
 // v2.1 — mention « DEPUIS 2021 » (année de création de l'association) sous le titre.
 // v2.0 — REFONTE : badge « tour de cou » en PORTRAIT (CR80 vertical), une seule
 // face (plus de verso, plus de drapeaux). Le verso (QR code + texte de
@@ -22,6 +24,7 @@ import {
 import { LOGO_DATA_URL } from './logo-data';
 import { parsePhone } from '../common/phone';
 import { Locale } from '../common/i18n';
+import { positionLabel } from '../common/positions';
 
 export interface CardData {
   firstName: string;
@@ -29,6 +32,9 @@ export interface CardData {
   phone: string;
   originDistrict: string;
   originLocality: string;
+  /** Code du poste (MEMBER, PRESIDENT, ... OTHER) et texte libre associé à « OTHER ». */
+  position: string;
+  positionOther: string;
   city: string;
   state: string;
   memberCode: string;
@@ -52,9 +58,9 @@ const CARD_TEXTS: Record<
     since: string;
     memberBadge: string;
     phone: string;
-    originCity: string;
-    originLocality: string;
-    residenceCity: string;
+    locality: string;
+    residence: string;
+    position: string;
     memberId: string;
     expiresEnd: string;
     scanPrefix: string;
@@ -69,9 +75,9 @@ const CARD_TEXTS: Record<
     since: 'DEPUIS',
     memberBadge: 'MEMBRE ADHÉRENT',
     phone: 'TÉLÉPHONE',
-    originCity: 'VILLE D’ORIGINE',
-    originLocality: 'LOCALITÉ D’ORIGINE',
-    residenceCity: 'VILLE DE RÉSIDENCE',
+    locality: 'LOCALITÉ',
+    residence: 'RÉSIDENCE',
+    position: 'POSTE',
     memberId: 'N° IDENTIFIANT',
     expiresEnd: 'EXPIRE FIN',
     scanPrefix: 'Scannez ce code pour ',
@@ -85,9 +91,9 @@ const CARD_TEXTS: Record<
     since: 'SINCE',
     memberBadge: 'MEMBER',
     phone: 'PHONE',
-    originCity: 'CITY OF ORIGIN',
-    originLocality: 'LOCALITY OF ORIGIN',
-    residenceCity: 'CITY OF RESIDENCE',
+    locality: 'LOCALITY',
+    residence: 'RESIDENCE',
+    position: 'POSITION',
     memberId: 'MEMBER ID',
     expiresEnd: 'EXPIRES',
     scanPrefix: 'Scan this code to ',
@@ -103,9 +109,9 @@ const CARD_TEXTS: Record<
     since: 'DIGA',
     memberBadge: 'KAWTAAƊO',
     phone: 'TELEFON',
-    originCity: 'WURO PUƊƊORDE',
-    originLocality: 'SAARE PUƊƊORDE',
-    residenceCity: 'WURO HOƊORDE',
+    locality: 'SAARE',
+    residence: 'HOƊORDE',
+    position: 'POSTE',
     memberId: 'LIMNGAL KARTE',
     expiresEnd: 'TIMMOTO',
     scanPrefix: 'Wanngu QR code ngoo ngam ',
@@ -523,15 +529,19 @@ function drawStatusPill(doc: Doc, data: CardData, cx: number, y: number, onLight
   drawText(doc, label, x + 1.9 + dot + 1.1, y + (h - lineHeight(style)) / 2 + 0.05, style);
 }
 
-/** Les quatre lignes d'informations (téléphone, origine, localité, résidence). Renvoie le bas. */
+/** Les quatre lignes d'informations (téléphone, localité, résidence, poste). Renvoie le bas. */
 function drawInfoRows(doc: Doc, data: CardData, x: number, y: number, w: number, pal: Palette, rowGap = 1.5): number {
   const phone = parsePhone(data.phone);
   const tx = textsOf(data);
   const rows: Array<{ label: string; value: string }> = [
     { label: tx.phone, value: phone.text ? safe(phone.text) : '—' },
-    { label: tx.originCity, value: safe(data.originDistrict) || '—' },
-    { label: tx.originLocality, value: safe(data.originLocality) || '—' },
-    { label: tx.residenceCity, value: safe(`${data.city}, ${data.state}`) },
+    // « Localité » = lieu d'origine du membre (ex. Lelouma)
+    { label: tx.locality, value: safe(data.originDistrict) || '—' },
+    { label: tx.residence, value: safe(`${data.city}, ${data.state}`) },
+    {
+      label: tx.position,
+      value: safe(positionLabel(data.position, data.positionOther, data.locale ?? 'fr').toUpperCase()),
+    },
   ];
   const labelStyle: TextStyle = { size: 4.5, color: pal.label, alpha: pal.labelAlpha, spacing: 0.45 };
   const valueStyle: TextStyle = { font: BOLD, size: 6.3, color: pal.value };
@@ -540,7 +550,10 @@ function drawInfoRows(doc: Doc, data: CardData, x: number, y: number, w: number,
   const rowH = lineHeight(valueStyle);
   for (const row of rows) {
     drawText(doc, row.label, x, y + (rowH - lineHeight(labelStyle)) / 2 + 0.1, labelStyle);
-    drawText(doc, fitText(doc, row.value, x + w - valueX, valueStyle), valueX, y, valueStyle);
+    // Valeur longue (ex. un poste saisi librement) : on réduit un peu la police avant de couper avec « … »
+    const room = x + w - valueX;
+    const style = shrinkToFit(doc, row.value, room, valueStyle, 5);
+    drawText(doc, fitText(doc, row.value, room, style), valueX, y + (rowH - lineHeight(style)) / 2, style);
     y += rowH + rowGap;
   }
   return y - rowGap;

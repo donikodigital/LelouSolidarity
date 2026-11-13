@@ -81,6 +81,9 @@ const PAIRS: [string, string][] = [
   ],
   ['Membre introuvable.', 'Member not found.'],
   ['Aucun champ ne peut être vide.', 'No field can be empty.'],
+  ['Poste invalide', 'Invalid position.'],
+  ['Précisez le poste.', 'Please specify the position.'],
+  ['Le poste ne doit pas dépasser 60 caractères.', 'The position must be 60 characters or fewer.'],
   ['Aucune modification à enregistrer.', 'No changes to save.'],
   // --- Authentification
   ['Identifiants incorrects', 'Incorrect e-mail or password.'],
@@ -245,6 +248,8 @@ const FIELD_LABELS: Record<string, { fr: string; en: string }> = {
   birthCity: { fr: 'Ville de naissance', en: 'City of birth' },
   originDistrict: { fr: 'Ville d’origine', en: 'City of origin' },
   originLocality: { fr: 'Localité d’origine', en: 'Locality of origin' },
+  position: { fr: 'Poste', en: 'Position' },
+  positionOther: { fr: 'Poste', en: 'Position' },
   addressLine: { fr: 'Adresse', en: 'Address' },
   city: { fr: 'Ville de résidence', en: 'City of residence' },
   state: { fr: 'État', en: 'State' },

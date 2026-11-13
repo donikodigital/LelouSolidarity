@@ -204,6 +204,8 @@ export class AdminProfileService {
         birthCity: true,
         originDistrict: true,
         originLocality: true,
+        position: true,
+        positionOther: true,
         addressLine: true,
         city: true,
         state: true,

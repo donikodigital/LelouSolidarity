@@ -1,4 +1,6 @@
 //web/lib/types.ts
+import type { PositionCode } from './positions';
+
 export type MemberStatus = 'PENDING' | 'VALIDATED';
 export type CardStatus = 'NONE' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
 
@@ -10,6 +12,9 @@ export interface Member {
   birthCity: string;
   originDistrict: string;
   originLocality: string;
+  /** Poste dans l'association (code) ; « OTHER » = poste saisi dans positionOther. */
+  position?: PositionCode;
+  positionOther?: string;
   addressLine: string;
   city: string;
   state: string;
@@ -91,6 +96,8 @@ export interface VerifyResult {
   fullName: string;
   originDistrict: string;
   originLocality?: string;
+  position?: PositionCode;
+  positionOther?: string;
   residence: string;
   issuedAt: string | null;
   expiresAt: string | null;

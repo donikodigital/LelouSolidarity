@@ -1,4 +1,6 @@
 //web/components/admin/EditMemberModal.tsx
+// v1.4 — « Poste » : liste (Membre, Président, Trésorier, Secrétaire général, Autre) ; pour
+// « Autre », l'intitulé est saisi librement. Le poste est imprimé sur la carte.
 // v1.3 — textes FR/EN.
 // v1.2 — « Ville de naissance » et « Pays » ; ville/localité d'origine et année/ville de
 // naissance sur la même ligne (aucun de ces champs n'est imprimé sur la carte).
@@ -11,11 +13,13 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { formatYear } from '@/lib/format';
 import { Member } from '@/lib/types';
+import { MAX_POSITION_OTHER_LENGTH, POSITION_CODES } from '@/lib/positions';
 import { useI18n } from '@/lib/i18n/I18nProvider';
 import { fmt } from '@/lib/i18n/pair';
 
@@ -34,6 +38,8 @@ interface EditForm {
   birthCity: string;
   originDistrict: string;
   originLocality: string;
+  position: string;
+  positionOther: string;
   addressLine: string;
   state: string;
   country: string;
@@ -51,6 +57,8 @@ const TEXT_FIELDS = [
   'lastName',
   'originDistrict',
   'originLocality',
+  'position',
+  'positionOther',
   'birthCity',
   'addressLine',
   'state',
@@ -68,6 +76,8 @@ const CARD_FIELDS: (keyof EditForm)[] = [
   'phone',
   'originDistrict',
   'originLocality',
+  'position',
+  'positionOther',
   'city',
   'state',
 ];
@@ -83,6 +93,8 @@ function fromMember(m: Member): EditForm {
     birthCity: m.birthCity ?? '',
     originDistrict: m.originDistrict,
     originLocality: m.originLocality ?? '',
+    position: m.position ?? 'MEMBER',
+    positionOther: m.position === 'OTHER' ? m.positionOther ?? '' : '',
     addressLine: m.addressLine,
     state: m.state,
     country: m.country ?? '',
@@ -138,8 +150,18 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
     const payload: Record<string, string> = {};
     const changed = new Set<keyof EditForm>();
 
+    // Poste : le texte libre n'existe que pour « Autre » et doit alors être renseigné
+    const values: EditForm = {
+      ...form,
+      positionOther: form.position === 'OTHER' ? form.positionOther.trim().replace(/\s+/g, ' ') : '',
+    };
+    if (values.position === 'OTHER' && !values.positionOther) {
+      setError(te.positionOtherRequired);
+      return;
+    }
+
     for (const field of TEXT_FIELDS) {
-      const value = form[field].trim();
+      const value = values[field].trim();
       if (value !== initial[field]) {
         payload[field] = value;
         changed.add(field);
@@ -239,6 +261,36 @@ export function EditMemberModal({ open, member, onClose, onSaved }: EditMemberMo
             value={form.originLocality}
             onChange={(e) => update('originLocality', e.target.value)}
           />
+        </div>
+
+        {/* Poste : liste + saisie libre pour « Autre » (imprimé sur la carte) */}
+        <div className={ROW_EQUAL}>
+          <div className={form.position === 'OTHER' ? undefined : 'col-span-2'}>
+            <Select
+              label={te.position}
+              name="position"
+              value={form.position}
+              onChange={(e) => update('position', e.target.value)}
+            >
+              {POSITION_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {t.admin.positions[code]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {form.position === 'OTHER' && (
+            <Input
+              label={te.positionOther}
+              name="positionOther"
+              autoComplete="off"
+              placeholder={te.positionOtherPlaceholder}
+              maxLength={MAX_POSITION_OTHER_LENGTH}
+              required
+              value={form.positionOther}
+              onChange={(e) => update('positionOther', e.target.value)}
+            />
+          )}
         </div>
 
         <Input

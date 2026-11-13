@@ -1,5 +1,6 @@
 //web/app/verify/[token]/page.tsx
 // v1.4 — textes et dates en FR/EN (langue du visiteur : cookie « lang » ou langue du navigateur).
+// v1.4 — libellés de la carte : Localité, Résidence, Poste (plus de « localité d'origine »).
 // v1.3 — libellés alignés sur la carte : Ville d'origine, Localité d'origine, Ville de résidence.
 // v1.2 — affiche la photo du membre (cadre or) au-dessus du statut, pour que la
 // personne qui contrôle compare le visage du porteur avec la photo enregistrée.
@@ -14,6 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { MemberPhoto } from '@/components/ui/MemberPhoto';
 import { formatDate } from '@/lib/format';
 import { ASSOCIATION_NAME } from '@/lib/constants';
+import { positionText } from '@/lib/positions';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { fmt } from '@/lib/i18n/pair';
 import { getT } from '@/lib/i18n/server';
@@ -141,10 +143,11 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
               <Row label={t.verify.fullName} value={lookup.result.fullName} />
               <Row label={t.verify.memberCode} value={lookup.result.memberCode} />
               <Row label={t.verify.originCity} value={lookup.result.originDistrict} />
-              {lookup.result.originLocality && (
-                <Row label={t.verify.originLocality} value={lookup.result.originLocality} />
-              )}
               <Row label={t.verify.residence} value={lookup.result.residence} />
+              <Row
+                label={t.verify.position}
+                value={positionText(t.admin.positions, lookup.result.position, lookup.result.positionOther)}
+              />
               <Row label={t.verify.issuedOn} value={formatDate(lookup.result.issuedAt, locale)} />
               <Row label={t.verify.expiresOn} value={formatDate(lookup.result.expiresAt, locale)} />
             </dl>

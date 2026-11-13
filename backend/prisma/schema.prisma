@@ -101,6 +101,10 @@ model Member {
   originDistrict String   // Ville d'origine (ex. Lelouma)
   originLocality String   @default("") // Localite d'origine (ex. Korbe, Sagale) ; vide pour les membres inscrits avant l'ajout du champ
 
+  // Poste dans l'association (imprime sur la carte). Code : MEMBER | PRESIDENT | TREASURER | SECRETARY_GENERAL | OTHER
+  position       String   @default("MEMBER")
+  positionOther  String   @default("") // poste saisi librement quand position = OTHER
+
   // Residence aux USA
   addressLine    String
   city           String

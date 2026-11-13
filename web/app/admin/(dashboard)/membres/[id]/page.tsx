@@ -1,4 +1,5 @@
 //web/app/admin/(dashboard)/membres/[id]/page.tsx
+// v+ — ligne « Poste » dans les informations personnelles (voir lib/positions.ts).
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -23,6 +24,7 @@ import { useSession } from '@/components/admin/SessionProvider';
 import { apiAdmin, ApiError } from '@/lib/api';
 import { formatDate, formatYear, formatPhone } from '@/lib/format';
 import { Member } from '@/lib/types';
+import { positionText } from '@/lib/positions';
 import { useI18n } from '@/lib/i18n/I18nProvider';
 import { LOCALE_META, isLocale } from '@/lib/i18n/config';
 
@@ -167,6 +169,7 @@ export default function MemberDetailPage() {
             <Info label={td.address} value={member.addressLine} />
             <Info label={td.residenceCity} value={`${member.city}, ${member.state} ${member.zipCode}`} />
             <Info label={td.country} value={member.country || '-'} />
+            <Info label={td.position} value={positionText(t.admin.positions, member.position, member.positionOther)} />
             <Info label={td.phone} value={formatPhone(member.phone)} />
             <Info
               label={td.language}

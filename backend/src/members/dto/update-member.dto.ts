@@ -2,11 +2,13 @@
 import {
   IsDateString,
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { MAX_POSITION_OTHER_LENGTH, POSITION_CODES } from '../../common/positions';
 
 // Modification d'un membre par l'administrateur (PATCH) : tous les champs
 // sont optionnels, seuls ceux qui sont fournis sont mis a jour.
@@ -45,6 +47,17 @@ export class UpdateMemberDto {
   @MinLength(1)
   @MaxLength(120)
   originLocality?: string;
+
+  /** Poste dans l'association (code). Réservé à l'administrateur : le formulaire public ne le propose pas. */
+  @IsOptional()
+  @IsIn(POSITION_CODES as unknown as string[], { message: 'Poste invalide' })
+  position?: string;
+
+  /** Poste saisi librement, obligatoire quand position = OTHER. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_POSITION_OTHER_LENGTH, { message: 'Le poste ne doit pas dépasser 60 caractères.' })
+  positionOther?: string;
 
   @IsOptional()
   @IsString()

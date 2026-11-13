@@ -1,4 +1,5 @@
 //backend/src/members/members.service.ts
+// v1.9 — update() : poste du membre (position / positionOther), « Autre » avec saisie libre.
 // v1.8 — demande : Etat et Pays (prefill + verrouillage) ; membre : ville de
 // naissance (birthCity) et pays (country) a l'inscription et a la modification.
 // v1.7 — nouveau champ « localité d'origine » (originLocality) à l'inscription et
@@ -34,6 +35,7 @@ import { SubmitMemberDto } from './dto/submit-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { ListMembersQueryDto } from './dto/list-members-query.dto';
 import { normalizePhone } from '../common/phone';
+import { DEFAULT_POSITION } from '../common/positions';
 import { Locale } from '../common/i18n';
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 Mo
@@ -315,6 +317,21 @@ export class MembersService {
     }
     if (dto.email !== undefined) {
       data.email = dto.email.toLowerCase().trim();
+    }
+
+    // Poste : « Autre » exige un intitulé ; pour les autres postes, le texte libre est effacé
+    if (dto.position !== undefined || dto.positionOther !== undefined) {
+      const current = await this.prisma.member.findUnique({
+        where: { id },
+        select: { position: true, positionOther: true },
+      });
+      const position = dto.position ?? current?.position ?? DEFAULT_POSITION;
+      const other = (dto.positionOther ?? current?.positionOther ?? '').trim().replace(/\s+/g, ' ');
+      if (position === 'OTHER' && !other) {
+        throw new BadRequestException('Précisez le poste.');
+      }
+      data.position = position;
+      data.positionOther = position === 'OTHER' ? other : '';
     }
 
     if (Object.keys(data).length === 0) {

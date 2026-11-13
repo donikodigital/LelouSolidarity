@@ -1,4 +1,5 @@
 //backend/src/cards/cards.service.ts
+// v2.3 — validité de la carte portée à 2 ans ; la carte imprime aussi le poste du membre.
 // v2.2 — nouvelle carte : badge « tour de cou » en portrait, une seule face (voir card-pdf.ts).
 // Aucun changement de logique ici : mêmes données, même PDF stocké, même e-mail.
 // v2.1 — la carte imprime le téléphone (au lieu de l'année de naissance) et la
@@ -28,7 +29,9 @@ import { resolveFrontendUrl } from '../common/frontend-url';
 import { renderMemberCardPdf } from './card-pdf';
 import { parseLocale } from '../common/i18n';
 
-const CARD_VALIDITY_YEARS = 1;
+// Durée de validité d'une carte neuve ou renouvelée (consigne du client : 2 ans).
+// Les cartes déjà émises gardent leur date d'expiration.
+const CARD_VALIDITY_YEARS = 2;
 
 // Cadre photo de la carte : 20 x 24,5 mm. 400 x 490 px suffisent largement à
 // l'impression (≈ 500 dpi) et pèsent quelques dizaines de Ko.
@@ -149,6 +152,8 @@ export class CardsService {
         phone: member.phone,
         originDistrict: member.originDistrict,
         originLocality: member.originLocality,
+        position: member.position,
+        positionOther: member.positionOther,
         city: member.city,
         state: member.state,
         memberCode,

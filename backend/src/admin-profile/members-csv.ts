@@ -6,6 +6,7 @@
 //   suivis de texte) pourrait être exécutée par le tableur ; on la préfixe d'une apostrophe.
 //   Les numéros de téléphone (« +1 (718) 555-0123 ») restent intacts.
 import { Locale } from '../common/i18n';
+import { positionLabel } from '../common/positions';
 
 export interface CsvMember {
   memberCode: string | null;
@@ -15,6 +16,8 @@ export interface CsvMember {
   birthCity: string;
   originDistrict: string;
   originLocality: string;
+  position: string;
+  positionOther: string;
   addressLine: string;
   city: string;
   state: string;
@@ -33,13 +36,13 @@ export interface CsvMember {
 const HEADERS: Record<'fr' | 'en', string[]> = {
   fr: [
     'Identifiant', 'Prénom', 'Nom', 'Année de naissance', 'Ville de naissance',
-    'Ville d’origine', 'Localité d’origine', 'Adresse', 'Ville de résidence', 'État',
+    'Ville d’origine', 'Localité d’origine', 'Poste', 'Adresse', 'Ville de résidence', 'État',
     'Code postal', 'Pays', 'Téléphone', 'E-mail', 'Langue', 'Statut', 'Statut de la carte',
     'Carte émise le', 'Carte expire le', 'Inscrit le',
   ],
   en: [
     'Member ID', 'First name', 'Last name', 'Year of birth', 'City of birth',
-    'City of origin', 'Locality of origin', 'Address', 'City of residence', 'State',
+    'City of origin', 'Locality of origin', 'Position', 'Address', 'City of residence', 'State',
     'ZIP code', 'Country', 'Phone', 'E-mail', 'Language', 'Status', 'Card status',
     'Card issued on', 'Card expires on', 'Registered on',
   ],
@@ -92,6 +95,7 @@ export function buildMembersCsv(members: CsvMember[], locale: Locale): string {
       m.birthCity,
       m.originDistrict,
       m.originLocality,
+      positionLabel(m.position, m.positionOther, lang),
       m.addressLine,
       m.city,
       m.state,

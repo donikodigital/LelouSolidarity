@@ -27,7 +27,7 @@ automatiques d'expiration.
 
 Regenerer une carte deja ACTIVE = simple reimpression (les dates ne
 changent pas). Regenerer une carte EXPIRING_SOON/EXPIRED = renouvellement
-(nouvelle periode de validite d'un an a partir d'aujourd'hui).
+(nouvelle periode de validite de 2 ans a partir d'aujourd'hui).
 
 ## Stack technique
 

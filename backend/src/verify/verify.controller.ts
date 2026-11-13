@@ -52,6 +52,8 @@ export class VerifyController {
       fullName: `${member.firstName} ${member.lastName}`,
       originDistrict: member.originDistrict,
       originLocality: member.originLocality,
+      position: member.position,
+      positionOther: member.positionOther,
       residence: `${member.city}, ${member.state}`,
       issuedAt: member.cardIssuedAt,
       expiresAt: member.cardExpiresAt,
