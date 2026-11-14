@@ -125,7 +125,7 @@ model Member {
   status         MemberStatus @default(PENDING)
 
   // Carte de membre
-  memberCode     String?     @unique   // ex: LS-2026-0001, attribue a la generation de la carte
+  memberCode     String?     @unique   // ex: LS20260001 (sans tiret), attribue a la generation de la carte
   cardStatus     CardStatus  @default(NONE)
   cardIssuedAt   DateTime?
   cardExpiresAt  DateTime?

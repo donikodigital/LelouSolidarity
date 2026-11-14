@@ -1,4 +1,9 @@
+//web/tailwind.config.ts
+// v1.1 — variante « kb: » : les classes préfixées (ex. kb:p-2, kb:static) ne s'appliquent que
+// tant que le clavier du téléphone est ouvert (attribut data-keyboard="open" posé sur <html>
+// par KeyboardAware). Sert à gagner de la place quand l'écran visible est réduit de moitié.
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 const config: Config = {
   content: [
@@ -42,7 +47,11 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addVariant }) => {
+      addVariant('kb', 'html[data-keyboard="open"] &');
+    }),
+  ],
 };
 
 export default config;

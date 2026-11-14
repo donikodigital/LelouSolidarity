@@ -1,4 +1,6 @@
 //backend/src/cards/cards.service.ts
+// v2.4 — code membre SANS tiret ni espace (ex. LS20260001 au lieu de LS-2026-0001). Les codes déjà
+// attribués sont convertis par la migration 20261114200000_member_code_without_dashes.
 // v2.3 — validité de la carte portée à 2 ans ; la carte imprime aussi le poste du membre.
 // v2.2 — nouvelle carte : badge « tour de cou » en portrait, une seule face (voir card-pdf.ts).
 // Aucun changement de logique ici : mêmes données, même PDF stocké, même e-mail.
@@ -280,7 +282,8 @@ export class CardsService {
 
   private async nextMemberCode(): Promise<string> {
     const year = new Date().getFullYear();
-    const prefix = `LS-${year}-`;
+    // Code collé : « LS » + année + numéro sur 4 chiffres (ex. LS20260001), sans tiret ni espace
+    const prefix = `LS${year}`;
 
     for (let attempt = 0; attempt < 5; attempt++) {
       const count = await this.prisma.member.count({

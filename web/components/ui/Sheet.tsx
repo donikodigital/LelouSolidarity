@@ -1,4 +1,6 @@
 //web/components/ui/Sheet.tsx
+// v1.1 — clavier du téléphone : la feuille se cale sur la zone visible (.kb-viewport) et se
+// compacte (poignée masquée, marges réduites, pleine hauteur visible) tant que le clavier est ouvert.
 'use client';
 
 import { ReactNode, useEffect } from 'react';
@@ -36,7 +38,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50">
+    <div className="kb-viewport fixed inset-0 z-50">
       <div
         className="animate-fade-in absolute inset-0 bg-ocean-900/45 backdrop-blur-[2px]"
         onClick={onClose}
@@ -46,12 +48,12 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="animate-sheet-up absolute inset-x-0 bottom-0 flex max-h-[92%] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-16 sm:max-h-[calc(100dvh-5rem)] sm:w-[24rem] sm:rounded-2xl sm:pb-0"
+        className="animate-sheet-up absolute inset-x-0 bottom-0 flex max-h-[92%] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-16 sm:max-h-[calc(100dvh-5rem)] sm:w-[24rem] sm:rounded-2xl sm:pb-0 kb:max-h-full kb:rounded-t-2xl kb:pb-0"
       >
         {/* Poignée (mobile) */}
-        <div className="mx-auto mt-2.5 h-1.5 w-10 flex-shrink-0 rounded-full bg-slate-200 sm:hidden" />
+        <div className="mx-auto mt-2.5 h-1.5 w-10 flex-shrink-0 rounded-full bg-slate-200 sm:hidden kb:hidden" />
 
-        <div className="flex flex-shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-4">
+        <div className="flex flex-shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-4 kb:pb-2 kb:pt-3">
           <h2 className="text-lg font-extrabold tracking-tight text-ocean-800">{title}</h2>
           <button
             type="button"
@@ -63,7 +65,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
           </button>
         </div>
 
-        <div className="overflow-y-auto overscroll-contain px-5 pb-5">{children}</div>
+        <div className="overflow-y-auto overscroll-contain px-5 pb-5 kb:pb-3">{children}</div>
       </div>
     </div>,
     document.body,

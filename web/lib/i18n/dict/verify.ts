@@ -1,4 +1,5 @@
 //web/lib/i18n/dict/verify.ts
+// v1.1 — clé `originCity` renommée `locality` : ce libellé désigne la ligne « Localité » de la carte.
 import { pair } from '../pair';
 
 export const verify = pair(
@@ -19,7 +20,7 @@ export const verify = pair(
     photoOf: 'Photo de {name}',
     fullName: 'Nom complet',
     memberCode: 'Identifiant',
-    originCity: 'Localité',
+    locality: 'Localité',
     originLocality: 'Localité d’origine',
     residence: 'Résidence',
     position: 'Poste',
@@ -44,7 +45,7 @@ export const verify = pair(
     photoOf: 'Photo of {name}',
     fullName: 'Full name',
     memberCode: 'Member ID',
-    originCity: 'Locality',
+    locality: 'Locality',
     originLocality: 'Locality of origin',
     residence: 'Residence',
     position: 'Position',
@@ -70,7 +71,7 @@ export const verify = pair(
     photoOf: 'Foto {name}',
     fullName: 'Innde timmuɗo',
     memberCode: 'Limngal karte',
-    originCity: 'Saare',
+    locality: 'Saare',
     originLocality: 'Saare puɗɗorde',
     residence: 'Hoɗorde',
     position: 'Poste',

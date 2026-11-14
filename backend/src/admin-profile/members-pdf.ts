@@ -1,4 +1,6 @@
 //backend/src/admin-profile/members-pdf.ts
+// v1.1 — la colonne « Localité » affiche la localité d'origine (comme la carte), avec repli
+// sur la ville d'origine pour les membres sans localité enregistrée.
 // Export de la liste des membres en PDF (A4 paysage) : un document propre à imprimer ou à
 // transmettre, avec en-tête aux couleurs de l'association, tableau en zébrures, pagination
 // et mention « confidentiel ». Dessiné avec pdfkit (aucun navigateur), comme la carte.
@@ -16,6 +18,7 @@ export interface PdfMember {
   lastName: string;
   birthDate: Date;
   originDistrict: string;
+  originLocality: string;
   position: string;
   positionOther: string;
   city: string;
@@ -183,7 +186,7 @@ export function renderMembersPdf(members: PdfMember[], locale: Locale, now = new
           m.memberCode ?? '-',
           `${m.lastName.toUpperCase()} ${m.firstName}`,
           String(m.birthDate.getUTCFullYear()),
-          m.originDistrict,
+          m.originLocality?.trim() || m.originDistrict,
           [m.city, m.state].filter(Boolean).join(', '),
           m.phone,
           positionLabel(m.position, m.positionOther, lang),

@@ -13,6 +13,22 @@ html[data-keyboard='open'] [data-hide-on-keyboard] {
   display: none;
 }
 
+/* Clavier ouvert : l'en-tête collé en haut n'est plus réservé, la zone visible est déjà très réduite */
+html[data-keyboard='open'] {
+  scroll-padding-block: 2rem;
+}
+
+/*
+ * Superposition (modale, feuille) calée sur la zone réellement visible quand le clavier est ouvert.
+ * --vvh et --vv-top sont publiées par <KeyboardAware /> : hauteur visible et décalage du haut.
+ * Sans clavier, la superposition garde `inset-0` (plein écran).
+ */
+html[data-keyboard='open'] .kb-viewport {
+  top: var(--vv-top, 0px);
+  bottom: auto;
+  height: var(--vvh, 100%);
+}
+
 body {
   background-color: #F6F9FB;
   color: #0A3C5A;

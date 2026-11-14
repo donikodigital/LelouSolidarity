@@ -1,4 +1,7 @@
 //web/components/ui/Modal.tsx
+// v1.1 — clavier du téléphone : la modale se cale sur la zone visible (.kb-viewport) et se compacte
+// (marges, padding, titre) tant que le clavier est ouvert ; le bouton « Fermer » reste visible
+// pendant le défilement sans prendre de place (zone collée de hauteur nulle).
 'use client';
 
 import { ReactNode, useEffect } from 'react';
@@ -40,21 +43,29 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="kb-viewport fixed inset-0 z-50 flex items-center justify-center p-4 kb:p-1.5">
       <div className="absolute inset-0 bg-ocean-900/40" onClick={onClose} aria-hidden="true" />
-      {/* max-h + overflow : sur mobile, un long formulaire reste accessible en defilant */}
+      {/* max-h + overflow : sur mobile, un long formulaire reste accessible en defilant.
+          kb: = clavier ouvert, on gagne de la place (marges et padding réduits). */}
       <Card
-        className={`relative z-10 w-full ${sizes[size]} max-h-full overflow-y-auto overscroll-contain p-5 shadow-card-hover sm:p-6`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`relative z-10 w-full ${sizes[size]} max-h-full overflow-y-auto overscroll-contain p-5 shadow-card-hover sm:p-6 kb:rounded-2xl kb:p-3.5`}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t.common.close}
-          className="absolute right-4 top-4 rounded-lg p-1 text-ocean-400 hover:bg-ocean-50 hover:text-ocean-700"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        {title && <h2 className="mb-5 pr-8 text-lg font-bold text-ocean-800">{title}</h2>}
+        {/* Zone collée en haut du défilement, hauteur nulle : le bouton reste atteignable
+            même quand le titre est sorti de l'écran (clavier ouvert, long formulaire). */}
+        <div className="sticky top-3 z-20 h-0">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t.common.close}
+            className="absolute -right-1 -top-1 rounded-full bg-white/90 p-1.5 text-ocean-400 shadow-sm ring-1 ring-ocean-100 backdrop-blur-sm hover:bg-ocean-50 hover:text-ocean-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {title && <h2 className="mb-5 pr-9 text-lg font-bold text-ocean-800 kb:mb-3 kb:text-base">{title}</h2>}
         {children}
       </Card>
     </div>,

@@ -1,4 +1,5 @@
 //web/components/admin/AdminTopBar.tsx
+// v1.1 — l'en-tête mobile n'est plus collé en haut quand le clavier du téléphone est ouvert.
 'use client';
 
 import { useRef, useState } from 'react';
@@ -76,7 +77,9 @@ export function AdminTopBar() {
   return (
     <>
       {/* Mobile */}
-      <header className="sticky top-0 z-30 lg:hidden">
+      {/* kb:static : clavier ouvert, l'en-tête n'est plus collé en haut (≈ 66 px rendus à la saisie) ;
+          il garde sa place dans la page, donc aucun saut de contenu. */}
+      <header className="sticky top-0 z-30 kb:static lg:hidden">
         <div className="flex items-center justify-between gap-3 border-b-2 border-[#D8B65C]/70 bg-gradient-to-r from-ocean-800 to-ocean-700 px-3 py-3 min-[360px]:px-4 text-white shadow-md shadow-ocean-900/20">
           <button
             type="button"

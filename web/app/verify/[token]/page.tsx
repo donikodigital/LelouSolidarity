@@ -1,4 +1,6 @@
 //web/app/verify/[token]/page.tsx
+// v1.5 — la ligne « Localité » affiche la localité d'origine (comme la carte) et non la ville
+// d'origine ; repli sur la ville d'origine pour les membres sans localité enregistrée.
 // v1.4 — textes et dates en FR/EN (langue du visiteur : cookie « lang » ou langue du navigateur).
 // v1.4 — libellés de la carte : Localité, Résidence, Poste (plus de « localité d'origine »).
 // v1.3 — libellés alignés sur la carte : Ville d'origine, Localité d'origine, Ville de résidence.
@@ -142,7 +144,10 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
             <dl className="mt-8 flex flex-col divide-y divide-slate-100 text-sm">
               <Row label={t.verify.fullName} value={lookup.result.fullName} />
               <Row label={t.verify.memberCode} value={lookup.result.memberCode} />
-              <Row label={t.verify.originCity} value={lookup.result.originDistrict} />
+              <Row
+                label={t.verify.locality}
+                value={lookup.result.originLocality?.trim() || lookup.result.originDistrict}
+              />
               <Row label={t.verify.residence} value={lookup.result.residence} />
               <Row
                 label={t.verify.position}

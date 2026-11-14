@@ -1,6 +1,9 @@
 //backend/src/cards/card-pdf.ts
-// v2.2 — consignes du client : lignes « Téléphone, Localité, Résidence, Poste » (la localité est
-// le lieu d'origine, ex. Lelouma) ; « DEPUIS » reprend l'année de THEME.foundedYear.
+// v2.3 — la ligne « Localité » imprime la LOCALITÉ d'origine (originLocality, ex. Kénéry) et non
+// plus la ville d'origine (originDistrict, ex. Lelouma). Les membres inscrits avant l'ajout de ce
+// champ n'ont pas de localité : leur ville d'origine est alors imprimée à la place.
+// v2.2 — consignes du client : lignes « Téléphone, Localité, Résidence, Poste » ;
+// « DEPUIS » reprend l'année de THEME.foundedYear.
 // v2.1 — mention « DEPUIS 2021 » (année de création de l'association) sous le titre.
 // v2.0 — REFONTE : badge « tour de cou » en PORTRAIT (CR80 vertical), une seule
 // face (plus de verso, plus de drapeaux). Le verso (QR code + texte de
@@ -533,10 +536,12 @@ function drawStatusPill(doc: Doc, data: CardData, cx: number, y: number, onLight
 function drawInfoRows(doc: Doc, data: CardData, x: number, y: number, w: number, pal: Palette, rowGap = 1.5): number {
   const phone = parsePhone(data.phone);
   const tx = textsOf(data);
+  // « Localité » = localité d'origine du membre (ex. Kénéry). Repli sur la ville d'origine
+  // pour les anciens membres dont la localité n'a jamais été renseignée.
+  const locality = (data.originLocality ?? '').trim() || (data.originDistrict ?? '').trim();
   const rows: Array<{ label: string; value: string }> = [
     { label: tx.phone, value: phone.text ? safe(phone.text) : '—' },
-    // « Localité » = lieu d'origine du membre (ex. Lelouma)
-    { label: tx.locality, value: safe(data.originDistrict) || '—' },
+    { label: tx.locality, value: safe(locality) || '—' },
     { label: tx.residence, value: safe(`${data.city}, ${data.state}`) },
     {
       label: tx.position,

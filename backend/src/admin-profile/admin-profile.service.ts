@@ -234,6 +234,7 @@ export class AdminProfileService {
         lastName: true,
         birthDate: true,
         originDistrict: true,
+        originLocality: true,
         position: true,
         positionOther: true,
         city: true,
