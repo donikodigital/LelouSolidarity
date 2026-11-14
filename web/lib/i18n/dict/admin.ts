@@ -49,11 +49,11 @@ export const admin = pair(
     },
     profile: {
       title: 'Mon profil',
-      role: 'Gérant · {name}',
+      role: 'Admin · {name}',
       view: 'Mon profil',
     },
     dashboard: {
-      hello: 'Bonjour, {name}',
+      greeting: 'Bonjour,',
       helloNoName: 'Bienvenue',
       completeProfile: 'Compléter mon profil ({percent} %)',
       viewProfile: 'Voir mon profil',
@@ -283,11 +283,11 @@ export const admin = pair(
     },
     profile: {
       title: 'My profile',
-      role: 'Manager · {name}',
+      role: 'Admin · {name}',
       view: 'My profile',
     },
     dashboard: {
-      hello: 'Hello, {name}',
+      greeting: 'Hello,',
       helloNoName: 'Welcome',
       completeProfile: 'Complete my profile ({percent}%)',
       viewProfile: 'View my profile',
@@ -519,11 +519,11 @@ export const admin = pair(
     },
     profile: {
       title: 'Profil am',
-      role: 'Gérant · {name}',
+      role: 'Admin · {name}',
       view: 'Profil am',
     },
     dashboard: {
-      hello: 'Assalaamu alaykum, {name}',
+      greeting: 'Assalaamu alaykum,',
       helloNoName: 'Assalaamu alaykum',
       completeProfile: 'Compléter mon profil ({percent} %)',
       viewProfile: 'Voir mon profil',

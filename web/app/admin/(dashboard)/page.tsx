@@ -1,4 +1,6 @@
 //web/app/admin/(dashboard)/page.tsx
+// v1.4 — « Bonjour, » en serif italique dorée au-dessus du prénom (sans-serif blanc gras) ;
+// rôle « Admin · LELOU SOLIDARITY » (au lieu de « Gérant ») sur une seule ligne, sous la photo.
 // v1.3 — la carte d'accueil devient la carte du gérant (photo, nom, rôle) avec accès au
 // profil et rappel de complétion : plus de « Bonjour Administrateur » générique.
 // v1.2 — refonte mobile : carte d'accueil dégradée, cartes de statistiques
@@ -80,26 +82,42 @@ export default function AdminDashboardPage() {
           <Link
             href="/admin/profil"
             aria-label={td.viewProfile}
-            className="group mt-3 flex min-w-0 items-center gap-3.5 rounded-2xl p-1 transition-transform duration-300 active:scale-[0.98]"
+            className="group mt-3 block min-w-0 rounded-2xl p-1 transition-transform duration-300 active:scale-[0.98]"
           >
-            <Avatar
-              name={session.admin.name}
-              email={session.admin.email}
-              src={session.admin.avatarUrl}
-              size={64}
-              ring
-              className="shadow-lg shadow-ocean-900/30"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block break-words text-[22px] font-extrabold leading-tight tracking-tight sm:text-3xl">
-                {firstName ? fmt(td.hello, { name: firstName }) : td.helloNoName}
+            <span className="flex min-w-0 items-center gap-3.5">
+              <Avatar
+                name={session.admin.name}
+                email={session.admin.email}
+                src={session.admin.avatarUrl}
+                size={64}
+                ring
+                className="shadow-lg shadow-ocean-900/30"
+              />
+              <span className="min-w-0 flex-1">
+                {firstName ? (
+                  <>
+                    {/* Formule de bienvenue : serif italique dorée, distincte du prénom (sans-serif blanc gras) */}
+                    <span className="block font-serif text-lg font-medium italic leading-none tracking-wide text-[#F3E2A9] sm:text-xl">
+                      {td.greeting}
+                    </span>
+                    <span className="mt-1 block break-words text-[22px] font-extrabold leading-tight tracking-tight sm:text-3xl">
+                      {firstName}
+                    </span>
+                  </>
+                ) : (
+                  <span className="block break-words text-[22px] font-extrabold leading-tight tracking-tight sm:text-3xl">
+                    {td.helloNoName}
+                  </span>
+                )}
               </span>
-              <span className="mt-1.5 flex items-start gap-1.5 text-xs font-semibold leading-snug text-[#F3E2A9]">
-                <ShieldCheck className="mt-px h-3.5 w-3.5 flex-shrink-0" />
-                <span className="min-w-0 break-words">{fmt(t.admin.profile.role, { name: ASSOCIATION_NAME })}</span>
-              </span>
+              <ChevronRight className="h-5 w-5 flex-shrink-0 text-ocean-100 transition-transform group-hover:translate-x-1" />
             </span>
-            <ChevronRight className="h-5 w-5 flex-shrink-0 text-ocean-100 transition-transform group-hover:translate-x-1" />
+            {/* Rôle sous la photo, sur toute la largeur de la carte : tient sur UNE seule ligne
+                (la colonne à côté de la photo est trop étroite sur téléphone). */}
+            <span className="mt-3 flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold leading-snug text-[#F3E2A9]">
+              <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="min-w-0 truncate">{fmt(t.admin.profile.role, { name: ASSOCIATION_NAME })}</span>
+            </span>
           </Link>
 
           {percent < 100 && (

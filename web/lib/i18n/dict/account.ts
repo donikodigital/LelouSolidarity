@@ -4,8 +4,8 @@
 
 export const accountFr = {
   manager: 'Gérant',
-  roleLine: 'Gérant · {name}',
-  memberSince: 'Gérant depuis le {date}',
+  roleLine: 'Admin · {name}',
+  memberSince: 'Admin depuis le {date}',
   completion: {
     title: 'Profil complété à {percent} %',
     complete: 'Profil complet',
@@ -116,8 +116,8 @@ export const accountFr = {
 
 export const accountEn: typeof accountFr = {
   manager: 'Manager',
-  roleLine: 'Manager · {name}',
-  memberSince: 'Manager since {date}',
+  roleLine: 'Admin · {name}',
+  memberSince: 'Admin since {date}',
   completion: {
     title: 'Profile {percent}% complete',
     complete: 'Profile complete',
