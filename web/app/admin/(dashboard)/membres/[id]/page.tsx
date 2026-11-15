@@ -1,5 +1,8 @@
 //web/app/admin/(dashboard)/membres/[id]/page.tsx
 // v+ — ligne « Poste » dans les informations personnelles (voir lib/positions.ts).
+// v++ — confirmation de la génération de la carte (et des erreurs) par une notification
+// flottante (Toast) visible quelle que soit la position de défilement : l'ancien bandeau
+// vert était en haut de la page, hors de l'écran sur mobile quand on appuyait sur le bouton.
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -7,7 +10,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   AlertCircle,
-  CheckCircle2,
   Download,
   IdCard,
   Pencil,
@@ -18,6 +20,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { CardStatusBadge, MemberStatusBadge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
+import { Toast, ToastData } from '@/components/ui/Toast';
 import { EditMemberModal } from '@/components/admin/EditMemberModal';
 import { DeleteMemberModal } from '@/components/admin/DeleteMemberModal';
 import { useSession } from '@/components/admin/SessionProvider';
@@ -39,7 +42,7 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastData | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -60,18 +63,30 @@ export default function MemberDetailPage() {
     load();
   }, [load]);
 
+  const closeToast = useCallback(() => setToast(null), []);
+
+  // Chaque appel crée une nouvelle notification (nouvel id : animation et minuteur repartent)
+  function notify(type: ToastData['type'], message: string, action?: ToastData['action']) {
+    setToast({ id: Date.now(), type, message, action });
+  }
+
   async function handleGenerate() {
     setGenerating(true);
-    setError(null);
-    setSuccessMsg(null);
+    setToast(null);
     try {
-      const updated = await apiAdmin(`/admin/members/${id}/card/generate`, session.accessToken, {
-        method: 'POST',
-      });
+      const updated: Member = await apiAdmin(
+        `/admin/members/${id}/card/generate`,
+        session.accessToken,
+        { method: 'POST' },
+      );
       setMember(updated);
-      setSuccessMsg(td.cardGenerated);
+      notify(
+        'success',
+        td.cardGenerated,
+        updated.cardPdfUrl ? { label: td.downloadPdf, href: updated.cardPdfUrl } : undefined,
+      );
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : td.generateFailed);
+      notify('error', err instanceof ApiError ? err.message : td.generateFailed);
     } finally {
       setGenerating(false);
     }
@@ -80,10 +95,7 @@ export default function MemberDetailPage() {
   function handleSaved(updated: Member, cardOutdated: boolean) {
     setMember(updated);
     setEditOpen(false);
-    setError(null);
-    setSuccessMsg(cardOutdated ? td.savedOutdated : td.saved);
-    // Le message est en haut de page : sur mobile, on y ramene l'ecran
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    notify('success', cardOutdated ? td.savedOutdated : td.saved);
   }
 
   function handleDeleted() {
@@ -125,11 +137,6 @@ export default function MemberDetailPage() {
       {error && (
         <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           <AlertCircle className="h-4 w-4 flex-shrink-0" /> {error}
-        </div>
-      )}
-      {successMsg && (
-        <div className="flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" /> {successMsg}
         </div>
       )}
 
@@ -266,6 +273,8 @@ export default function MemberDetailPage() {
         onClose={() => setDeleteOpen(false)}
         onDeleted={handleDeleted}
       />
+
+      <Toast toast={toast} onClose={closeToast} />
     </div>
   );
 }

@@ -67,6 +67,8 @@ body {
 .animate-rise { animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-pop-in { animation: popIn 0.35s ease-out both; }
 .animate-wiggle { animation: wiggle 0.6s ease-in-out 1; transform-origin: top center; }
+/* Notification flottante (Toast) : descend du haut de l'écran */
+.animate-pop-down { animation: popDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @keyframes wiggle {
   0%, 100% { transform: rotate(0); }
