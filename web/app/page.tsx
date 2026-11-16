@@ -1,4 +1,5 @@
 //web/app/page.tsx
+// v1.3 — bouton « Installer l'application » (PWA) sous le bouton de demande de formulaire.
 // v1.2 — langues FR/EN : sélecteur en haut à gauche (pastille style OCCAZ).
 // v1.1 — logo, bouton « Espace administrateur » en haut à droite, bouton
 // « Demander votre formulaire d'adhésion » (modal) à la place de l'ancien
@@ -9,6 +10,7 @@ import { Logo } from '@/components/layout/Logo';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { RequestFormButton } from '@/components/forms/RequestFormButton';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { InstallButton } from '@/components/pwa/InstallButton';
 import { ASSOCIATION_NAME } from '@/lib/constants';
 import { fmt } from '@/lib/i18n/pair';
 import { getT } from '@/lib/i18n/server';
@@ -67,6 +69,9 @@ export default async function HomePage() {
             <Mail className="h-3.5 w-3.5 flex-shrink-0" />
             {t.home.emailNote}
           </p>
+
+          {/* N'apparaît que si le navigateur peut installer l'application et qu'elle ne l'est pas déjà */}
+          <InstallButton className="mt-6" />
         </div>
       </section>
 

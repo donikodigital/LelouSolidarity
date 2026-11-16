@@ -1,14 +1,20 @@
 //web/components/pwa/InstallBanner.tsx
-// v1.0 — suggestion d'installation de l'application, affichée dans l'espace administrateur.
-//  - apparaît quelques secondes après l'ouverture, au-dessus de la barre de navigation du bas ;
+// v1.1 — la suggestion d'installation s'affiche désormais dès la consultation du site (page d'accueil,
+//        connexion administrateur…) et plus seulement dans le tableau de bord. Elle est montée une seule
+//        fois dans le layout racine ; sa position s'adapte à la page (au-dessus de la barre de navigation
+//        du bas dans l'espace administrateur, collée en bas ailleurs) et elle reste masquée sur les
+//        parcours « membre » (formulaire d'adhésion, vérification de carte).
+// v1.0 — suggestion d'installation de l'application :
+//  - apparaît quelques secondes après l'ouverture ;
 //  - Android / ordinateur : bouton « Installer » (fenêtre du navigateur) ;
 //  - iPhone / iPad : bouton « Comment faire ? » (guide en 3 étapes) ;
 //  - « Plus tard » ou la croix : on ne la repropose pas avant 7 jours (l'entrée « Application »
-//    du profil reste disponible à tout moment) ;
+//    du profil et le bouton de la page d'accueil restent disponibles à tout moment) ;
 //  - jamais affichée si l'application est déjà installée.
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { CheckCircle2, Download, Share, X } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { InstallGuideSheet } from './InstallGuideSheet';
@@ -19,6 +25,21 @@ const SNOOZE_KEY = 'ls-install-snoozed-until';
 const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 const SHOW_DELAY_MS = 3500;
 const DONE_VISIBLE_MS = 2500;
+
+/** Parcours « membre » : on ne détourne pas l'attention d'une personne qui remplit son dossier. */
+const HIDDEN_PREFIXES = ['/formulaire', '/verify'];
+/** Pages de l'espace administrateur SANS barre de navigation du bas. */
+const AUTH_PREFIXES = ['/admin/login', '/admin/forgot-password', '/admin/reset-password'];
+
+type Placement = 'hidden' | 'above-nav' | 'bottom';
+
+function getPlacement(pathname: string | null): Placement {
+  const path = pathname || '/';
+  if (HIDDEN_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return 'hidden';
+  const isAdmin = path === '/admin' || path.startsWith('/admin/');
+  const isAuth = AUTH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  return isAdmin && !isAuth ? 'above-nav' : 'bottom';
+}
 
 function isSnoozed(): boolean {
   try {
@@ -38,6 +59,8 @@ function snooze() {
 
 export function InstallBanner() {
   const t = useT().install;
+  const pathname = usePathname();
+  const placement = getPlacement(pathname);
   const { available, canPrompt, isIos, promptInstall } = useInstall();
 
   const [visible, setVisible] = useState(false);
@@ -48,14 +71,14 @@ export function InstallBanner() {
   // Une fois fermée (ou installée), la bannière ne revient pas pendant cette visite
   const closed = useRef(false);
 
-  // Apparition différée : on ne saute pas à la figure de l'administrateur dès l'ouverture
+  // Apparition différée : on ne saute pas à la figure du visiteur dès l'ouverture
   useEffect(() => {
-    if (!available || visible || closed.current || isSnoozed()) return;
+    if (placement === 'hidden' || !available || visible || closed.current || isSnoozed()) return;
     const timer = window.setTimeout(() => {
       if (!closed.current) setVisible(true);
     }, SHOW_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [available, visible]);
+  }, [available, visible, placement]);
 
   function dismiss() {
     closed.current = true;
@@ -80,16 +103,24 @@ export function InstallBanner() {
     }
   }
 
+  if (placement === 'hidden') return null;
+
   if (!visible) {
     return <InstallGuideSheet open={guideOpen} onClose={() => setGuideOpen(false)} />;
   }
 
+  // Les classes sont écrites en entier (et non assemblées) pour que Tailwind les détecte
+  const position =
+    placement === 'above-nav'
+      ? 'bottom-[calc(6.75rem+env(safe-area-inset-bottom))]'
+      : 'bottom-[calc(1rem+env(safe-area-inset-bottom))]';
+
   return (
     <>
-      {/* Mobile : au-dessus de la barre du bas ; grand écran : coin inférieur droit */}
+      {/* Mobile : en bas (au-dessus de la barre de navigation dans l'espace admin) ; grand écran : coin inférieur droit */}
       <div
         data-hide-on-keyboard
-        className="pointer-events-none fixed inset-x-0 bottom-[calc(6.75rem+env(safe-area-inset-bottom))] z-40 px-3 lg:inset-x-auto lg:bottom-6 lg:right-6 lg:w-[25rem] lg:px-0"
+        className={`pointer-events-none fixed inset-x-0 ${position} z-40 px-3 lg:inset-x-auto lg:bottom-6 lg:right-6 lg:w-[25rem] lg:px-0`}
       >
         <div
           role="dialog"

@@ -1,4 +1,6 @@
 //web/app/layout.tsx
+// v1.4 — la suggestion d'installation (<InstallBanner />) est montée ici, dans le layout racine :
+// elle apparaît dès la consultation du site (accueil, connexion…) et non plus seulement dans le tableau de bord.
 // v1.3 — application installable (PWA) : couleur de la barre du téléphone, icônes, mode « appli »
 // iPhone, et <InstallProvider /> (service worker + suggestion d'installation).
 // v1.2 — clavier mobile (viewport + KeyboardAware) ; v1.1 — langue (FR/EN) : lue dans le cookie « lang » côté serveur, donc aucun
@@ -10,6 +12,7 @@ import { I18nProvider } from '@/lib/i18n/I18nProvider';
 import { getT } from '@/lib/i18n/server';
 import { KeyboardAware } from '@/components/layout/KeyboardAware';
 import { InstallProvider } from '@/components/pwa/InstallProvider';
+import { InstallBanner } from '@/components/pwa/InstallBanner';
 
 // Clavier du téléphone : « resizes-content » réduit la page quand le clavier s'ouvre
 // (au lieu de le laisser par-dessus et de cacher les champs). Sans effet sur Safari iOS,
@@ -51,7 +54,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale}>
       <body className="font-sans antialiased">
         <I18nProvider locale={locale}>
-          <InstallProvider>{children}</InstallProvider>
+          <InstallProvider>
+            {children}
+            <InstallBanner />
+          </InstallProvider>
         </I18nProvider>
         <KeyboardAware />
       </body>

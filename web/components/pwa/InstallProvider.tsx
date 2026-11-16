@@ -1,4 +1,8 @@
 //web/components/pwa/InstallProvider.tsx
+// v1.1 — l'application installée, ouverte sur la page d'accueil publique, bascule vers l'espace
+//        administrateur (c'est l'écran de démarrage déclaré dans le manifeste, y compris sur iPhone
+//        qui ne le respecte pas toujours) ; le service worker est revérifié à chaque retour dans
+//        l'application, pour que les mises à jour arrivent sans manipulation.
 // v1.0 — installation de l'application (PWA).
 //  - enregistre le service worker (/sw.js) en production ;
 //  - capte l'évènement « beforeinstallprompt » dès l'ouverture du site (il n'est émis qu'une
@@ -17,6 +21,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -58,6 +63,10 @@ function detectIos(): boolean {
 }
 
 export function InstallProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  // Chemin au moment du lancement : la redirection ne concerne que l'ouverture de l'application
+  const launchPath = useRef(pathname);
   const deferred = useRef<BeforeInstallPromptEvent | null>(null);
   const [canPrompt, setCanPrompt] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -82,11 +91,20 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
 
-    // Le service worker rend l'application installable et affiche une page claire hors connexion.
+    // Le service worker rend l'application installable, affiche une page claire hors connexion
+    // et accélère les ouvertures (fichiers de l'application mis en cache, jamais les données).
     // En développement (next dev) on ne l'enregistre pas : il gênerait le rechargement à chaud.
+    let onVisible: (() => void) | null = null;
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+        .then((registration) => {
+          // Retour dans l'application (déverrouillage du téléphone, changement d'onglet) : on cherche une mise à jour
+          onVisible = () => {
+            if (document.visibilityState === 'visible') registration.update().catch(() => {});
+          };
+          document.addEventListener('visibilitychange', onVisible);
+        })
         .catch(() => {
           /* sans service worker, le site fonctionne normalement */
         });
@@ -95,8 +113,14 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
+      if (onVisible) document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
+
+  // Application installée ouverte sur la page d'accueil publique -> espace administrateur
+  useEffect(() => {
+    if (launchPath.current === '/' && isRunningInstalled()) router.replace('/admin');
+  }, [router]);
 
   const promptInstall = useCallback(async (): Promise<InstallOutcome> => {
     const event = deferred.current;

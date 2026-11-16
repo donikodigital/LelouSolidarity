@@ -52,6 +52,26 @@ npm run dev
 
 L'app tourne alors sur `http://localhost:3000`.
 
+## Application installable (PWA)
+
+Le site est une vraie application installable (Android, iPhone/iPad, Windows, Mac, Linux).
+
+- **Où l'installation est proposée** : bannière en bas de l'écran (accueil, connexion et espace
+  administrateur ; jamais sur le formulaire d'adhesion ni la verification de carte), bouton
+  « Installer l'application » sur la page d'accueil, et carte « Application » dans le profil.
+- **Android / ordinateur (Chrome, Edge, Samsung Internet)** : installation en un clic.
+- **iPhone / iPad** : pas de bouton natif, un guide en 3 etapes (Partager > Sur l'ecran d'accueil) s'ouvre.
+- **Ouverture** : l'application installee demarre sur `/admin`.
+- **Hors connexion** : page claire `/offline.html` ; les fichiers de l'application (scripts, styles, icones)
+  sont gardes sur l'appareil, mais jamais les pages ni les donnees (toujours celles du serveur).
+- **Fichiers** : `app/manifest.ts`, `public/sw.js`, `public/offline.html`, `public/icons/`,
+  `public/screenshots/`, `components/pwa/`.
+- **Test en local** : le service worker n'est actif qu'en production -> `npm run build && npm start`
+  (localhost est accepte comme site securise). En ligne, le site doit etre en HTTPS (Vercel le fait).
+- **Important** : `htmlLimitedBots: /.*/` dans `next.config.mjs` est indispensable. Sans lui, Next.js 15.5
+  place le manifeste dans `<body>` et Chrome ne propose jamais l'installation.
+- **Mise a jour** : changer `VERSION` dans `public/sw.js` pour vider les caches des appareils.
+
 ## Deploiement sur Vercel
 
 - Importer ce repo dans Vercel.
