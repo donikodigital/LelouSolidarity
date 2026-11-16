@@ -6,6 +6,7 @@ import { forms } from './dict/forms';
 import { verify } from './dict/verify';
 import { admin } from './dict/admin';
 import { notif } from './dict/notif';
+import { install } from './dict/install';
 
 export * from './config';
 export { fmt } from './pair';
@@ -18,6 +19,7 @@ const dictionaries = {
     verify: verify.fr,
     admin: admin.fr,
     notif: notif.fr,
+    install: install.fr,
   },
   en: {
     common: common.en,
@@ -26,6 +28,7 @@ const dictionaries = {
     verify: verify.en,
     admin: admin.en,
     notif: notif.en,
+    install: install.en,
   },
   ff: {
     common: common.ff,
@@ -34,6 +37,7 @@ const dictionaries = {
     verify: verify.ff,
     admin: admin.ff,
     notif: notif.ff,
+    install: install.ff,
   },
 };
 

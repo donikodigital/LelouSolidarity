@@ -4,6 +4,7 @@ import { NotificationsProvider } from '@/components/admin/NotificationsProvider'
 import { Sidebar } from '@/components/admin/Sidebar';
 import { AdminTopBar } from '@/components/admin/AdminTopBar';
 import { BottomNav } from '@/components/admin/BottomNav';
+import { InstallBanner } from '@/components/pwa/InstallBanner';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +21,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
         <BottomNav />
+        {/* Suggestion d'installation de l'application (PWA), au-dessus de la barre du bas */}
+        <InstallBanner />
       </NotificationsProvider>
     </SessionProvider>
   );

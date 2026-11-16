@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#082F47" />
+  <title>Hors connexion — LELOU SOLIDARITY</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: linear-gradient(160deg, #082F47 0%, #0C486E 100%);
+      color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      text-align: center;
+    }
+    main { width: 100%; max-width: 380px; animation: rise .5s cubic-bezier(.22,1,.36,1) both; }
+    img { width: 96px; height: 96px; border-radius: 50%; box-shadow: 0 0 0 3px #D8B65C, 0 12px 30px rgba(0,0,0,.35); }
+    h1 { margin: 24px 0 8px; font-size: 22px; font-weight: 800; letter-spacing: .01em; }
+    p { margin: 0; font-size: 15px; line-height: 1.5; color: rgba(255,255,255,.78); }
+    button {
+      margin-top: 28px; width: 100%; padding: 14px 20px; border: 0; border-radius: 14px; cursor: pointer;
+      background: #D8B65C; color: #062234; font-size: 16px; font-weight: 700;
+    }
+    button:active { transform: scale(.98); }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { main { animation: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/icons/icon-192.png" alt="LELOU SOLIDARITY" width="96" height="96" />
+    <h1 id="title">Vous êtes hors connexion</h1>
+    <p id="text">Impossible de joindre le serveur. Vérifiez votre connexion Internet, puis réessayez.</p>
+    <button id="retry" type="button">Réessayer</button>
+  </main>
+  <script>
+    // Langue du téléphone : français par défaut, anglais si le téléphone est en anglais
+    if ((navigator.language || '').toLowerCase().indexOf('en') === 0) {
+      document.documentElement.lang = 'en';
+      document.title = 'Offline — LELOU SOLIDARITY';
+      document.getElementById('title').textContent = 'You are offline';
+      document.getElementById('text').textContent = 'The server cannot be reached. Check your Internet connection, then try again.';
+      document.getElementById('retry').textContent = 'Try again';
+    }
+    document.getElementById('retry').addEventListener('click', function () { location.reload(); });
+    window.addEventListener('online', function () { location.reload(); });
+  </script>
+</body>
+</html>
