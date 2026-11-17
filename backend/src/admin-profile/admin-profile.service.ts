@@ -86,10 +86,16 @@ export class AdminProfileService {
   async update(id: string, dto: UpdateProfileDto) {
     await this.getOrThrow(id);
 
-    const data: { name?: string | null; phone?: string | null; notifyFormRequests?: boolean } = {};
+    const data: {
+      name?: string | null;
+      phone?: string | null;
+      notifyFormRequests?: boolean;
+      locale?: Locale;
+    } = {};
     if (dto.name !== undefined) data.name = dto.name.trim().replace(/\s+/g, ' ') || null;
     if (dto.phone !== undefined) data.phone = normalizePhone(dto.phone) || null;
     if (dto.notifyFormRequests !== undefined) data.notifyFormRequests = dto.notifyFormRequests;
+    if (dto.locale !== undefined) data.locale = dto.locale;
 
     const updated = await this.prisma.admin.update({ where: { id }, data });
     return toPublicAdmin(updated);

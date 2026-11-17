@@ -22,6 +22,7 @@ export function toPublicAdmin(admin: Admin) {
     phone: admin.phone,
     avatarUrl: admin.avatarUrl,
     notifyFormRequests: admin.notifyFormRequests,
+    locale: admin.locale,
     createdAt: admin.createdAt,
     lastLoginAt: admin.lastLoginAt,
     previousLoginAt: admin.previousLoginAt,

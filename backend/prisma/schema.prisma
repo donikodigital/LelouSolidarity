@@ -32,6 +32,7 @@ model Admin {
   avatarUrl           String?   // photo de profil (Cloudinary)
   avatarPublicId      String?
   notifyFormRequests  Boolean   @default(true) // e-mail à chaque nouvelle demande de formulaire
+  locale              String    @default("fr") // langue d'affichage choisie par ce gérant (fr | en | ff), retrouvée à chaque connexion
 
   // Sécurité
   lastLoginAt         DateTime? // dernière connexion

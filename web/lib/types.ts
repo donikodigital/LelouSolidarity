@@ -1,5 +1,6 @@
 //web/lib/types.ts
 import type { PositionCode } from './positions';
+import type { Locale } from './i18n/config';
 
 export type MemberStatus = 'PENDING' | 'VALIDATED';
 export type CardStatus = 'NONE' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
@@ -71,6 +72,8 @@ export interface AdminProfile {
   avatarUrl: string | null;
   /** Reçoit un e-mail à chaque nouvelle demande de formulaire. */
   notifyFormRequests: boolean;
+  /** Langue d'affichage choisie par ce gérant (fr | en | ff). */
+  locale: Locale;
   createdAt: string;
   /** Connexion en cours. */
   lastLoginAt: string | null;

@@ -65,9 +65,12 @@ export function Flag({ locale, className }: { locale: Locale; className?: string
 export function LanguageSwitcher({
   className,
   align = 'left',
+  onChange,
 }: {
   className?: string;
   align?: 'left' | 'right';
+  /** Appelé après un changement de langue (l'espace admin y enregistre le choix du gérant). */
+  onChange?: (next: Locale) => void;
 }) {
   const { locale, setLocale, t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -121,7 +124,10 @@ export function LanguageSwitcher({
                 type="button"
                 onClick={() => {
                   setOpen(false);
-                  if (code !== locale) setLocale(code);
+                  if (code !== locale) {
+                    setLocale(code);
+                    onChange?.(code);
+                  }
                 }}
                 className={clsx(
                   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition',

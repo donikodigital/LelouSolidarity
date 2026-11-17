@@ -12,10 +12,11 @@ import { BrandMark } from '@/components/layout/BrandMark';
 import { apiPublic, ApiError } from '@/lib/api';
 import { saveSession } from '@/lib/auth';
 import { ASSOCIATION_NAME } from '@/lib/constants';
-import { useT } from '@/lib/i18n/I18nProvider';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { isLocale } from '@/lib/i18n/config';
 
 export function LoginForm() {
-  const t = useT();
+  const { t, locale, setLocale } = useI18n();
   const ta = t.admin.auth;
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -34,6 +35,10 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
       saveSession(data);
+      // Chaque gérant retrouve SA langue (enregistrée sur son compte), quel que soit l'appareil
+      // et quelle que soit la langue laissée par la personne précédente.
+      const saved = data?.admin?.locale;
+      if (isLocale(saved) && saved !== locale) setLocale(saved);
       router.replace('/admin');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : ta.loginFailed);

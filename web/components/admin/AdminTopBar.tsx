@@ -1,4 +1,5 @@
 //web/components/admin/AdminTopBar.tsx
+// v1.2 — le choix de langue est enregistré sur le compte du gérant.
 // v1.1 — l'en-tête mobile n'est plus collé en haut quand le clavier du téléphone est ouvert.
 'use client';
 
@@ -8,6 +9,9 @@ import clsx from 'clsx';
 import { Logo } from '@/components/layout/Logo';
 import { ASSOCIATION_NAME } from '@/lib/constants';
 import { useAdminData } from './NotificationsProvider';
+import { useSession } from './SessionProvider';
+import { apiAdmin } from '@/lib/api';
+import type { Locale } from '@/lib/i18n/config';
 import { NotificationsSheet } from './NotificationsSheet';
 import { ProfileSheet } from './ProfileSheet';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
@@ -59,10 +63,20 @@ function BellButton({
  */
 export function AdminTopBar() {
   const { t } = useI18n();
+  const { session, updateAdmin } = useSession();
   const { notifications, unreadCount, seenAt, markAllRead } = useAdminData();
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const seenSnapshot = useRef(0);
+
+  /** Mémorise la langue sur le compte du gérant (et non plus seulement sur l'appareil). */
+  function saveLocale(next: Locale) {
+    updateAdmin({ locale: next });
+    apiAdmin('/admin/profile', session.accessToken, {
+      method: 'PATCH',
+      body: JSON.stringify({ locale: next }),
+    }).catch(() => {}); // sans effet bloquant : la langue reste appliquée sur cet appareil
+  }
 
   function openNotifications() {
     seenSnapshot.current = seenAt;
@@ -98,7 +112,7 @@ export function AdminTopBar() {
             </span>
           </button>
           <div className="flex flex-shrink-0 items-center gap-1.5 min-[360px]:gap-2">
-            <LanguageSwitcher align="right" />
+            <LanguageSwitcher align="right" onChange={saveLocale} />
             <BellButton count={unreadCount} onClick={openNotifications} tone="dark" />
           </div>
         </div>
@@ -106,7 +120,7 @@ export function AdminTopBar() {
 
       {/* Grand écran */}
       <div className="hidden items-center justify-end gap-3 px-8 pt-6 lg:flex">
-        <LanguageSwitcher align="right" className="rounded-full ring-1 ring-ocean-100" />
+        <LanguageSwitcher align="right" className="rounded-full ring-1 ring-ocean-100" onChange={saveLocale} />
         <BellButton count={unreadCount} onClick={openNotifications} tone="light" />
       </div>
 

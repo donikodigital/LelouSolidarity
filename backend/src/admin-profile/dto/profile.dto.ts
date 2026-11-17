@@ -1,7 +1,8 @@
 //backend/src/admin-profile/dto/profile.dto.ts
 // Données reçues par la page « Mon profil ». Les messages sont écrits en français
 // (source) ; ils sont traduits par common/error-messages.ts selon la langue de la requête.
-import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { LOCALES } from '../../common/i18n';
 
 export class UpdateProfileDto {
   // Chaîne vide = effacer le nom
@@ -20,6 +21,11 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   notifyFormRequests?: boolean;
+
+  // Langue d'affichage du gérant : retrouvée à chaque connexion, sur n'importe quel appareil
+  @IsOptional()
+  @IsIn([...LOCALES], { message: 'Langue invalide.' })
+  locale?: (typeof LOCALES)[number];
 }
 
 export class ChangePasswordDto {

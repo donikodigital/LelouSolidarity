@@ -1,4 +1,5 @@
 //web/components/admin/SessionProvider.tsx
+// v1.2 — la déconnexion remet la langue par défaut (la langue appartient au gérant, pas à l'appareil).
 // v1.1 — le profil du gérant (nom, photo...) est rechargé en silence à l'ouverture,
 // et updateAdmin() permet aux pages de le mettre à jour (et de remplacer le jeton
 // quand le serveur en émet un nouveau : changement de mot de passe, d'e-mail...).
@@ -17,6 +18,8 @@ import { useRouter } from 'next/navigation';
 import { AdminProfile, AdminSession } from '@/lib/types';
 import { getSession, saveSession, clearSession } from '@/lib/auth';
 import { apiAdmin } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/I18nProvider';
+import { DEFAULT_LOCALE } from '@/lib/i18n/config';
 import { Spinner } from '@/components/ui/Spinner';
 
 interface SessionContextValue {
@@ -34,6 +37,7 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { setLocale } = useI18n();
   const [session, setSession] = useState<AdminSession | null | undefined>(undefined);
   const latest = useRef<AdminSession | null>(null);
 
@@ -74,7 +78,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [router, updateAdmin]);
 
   function logout() {
+    // clearSession() remet aussi le cookie de langue au français ; setLocale() aligne l'affichage
+    // en cours : la personne suivante sur cet appareil ne garde pas la langue de la précédente.
     clearSession();
+    setLocale(DEFAULT_LOCALE);
     router.replace('/admin/login');
   }
 
